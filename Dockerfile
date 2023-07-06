@@ -1,4 +1,4 @@
-ARG  BUILDER_IMAGE=golang:1.20-rc-alpine3.17
+ARG  BUILDER_IMAGE=golang:1.21-rc-alpine3.17
 ARG  DISTROLESS_IMAGE=gcr.io/distroless/static
 ############################
 # STEP 1 build executable binary
