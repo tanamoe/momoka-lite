@@ -6,4 +6,4 @@ serve:
 	go run ./cmd/serve.go serve
 
 fmt:
-	find -name "*.go" -exec go fmt {} \;
+	find . -name "*.go" -exec go fmt {} \;
