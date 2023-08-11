@@ -6,6 +6,8 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/plugins/migratecmd"
+
 	"tana.moe/momoka-lite/models"
 )
 
@@ -15,6 +17,10 @@ func main() {
 		log.Fatal(err)
 		return
 	}
+
+	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
+		Automigrate: false,
+	})
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
