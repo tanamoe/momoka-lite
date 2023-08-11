@@ -8,6 +8,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
+	_ "tana.moe/momoka-lite/migrations"
 	"tana.moe/momoka-lite/models"
 )
 
