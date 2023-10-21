@@ -14,7 +14,14 @@ import (
 
 func main() {
 	app := pocketbase.New()
-	if err := registerMiddleware(app); err != nil {
+
+	context, err := models.NewContext()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	if err := registerMiddleware(app, context); err != nil {
 		log.Fatal(err)
 		return
 	}
@@ -29,11 +36,10 @@ func main() {
 	}
 }
 
-func registerMiddleware(app *pocketbase.PocketBase) error {
-	context, err := models.NewContext()
-	if err != nil {
-		return err
-	}
+func registerMiddleware(
+	app *pocketbase.PocketBase,
+	context *models.AppContext,
+) error {
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.Use(appendAppContext(context))
 		return nil
