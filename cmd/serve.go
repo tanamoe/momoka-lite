@@ -8,6 +8,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
+	"tana.moe/momoka-lite/hooks"
 	_ "tana.moe/momoka-lite/migrations"
 	"tana.moe/momoka-lite/models"
 )
@@ -22,6 +23,11 @@ func main() {
 	}
 
 	if err := registerMiddleware(app, context); err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	if err := hooks.RegisterHooks(app, context); err != nil {
 		log.Fatal(err)
 		return
 	}
