@@ -53,6 +53,7 @@ func registerAppendImageSecretHook(
 	app.OnRecordViewRequest("bookDetails").Add(func(e *core.RecordViewEvent) error {
 		return appendImageSliceSecretHook(e.Record)
 	})
+
 	app.OnRecordsListRequest("bookDetails").Add(func(e *core.RecordsListEvent) error {
 		for _, record := range e.Records {
 			if err := appendImageSliceSecretHook(record); err != nil {
