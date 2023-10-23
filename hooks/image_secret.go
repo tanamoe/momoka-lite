@@ -15,7 +15,7 @@ func registerAppendImageSecretHook(
 	app *pocketbase.PocketBase,
 	context *models.AppContext,
 ) error {
-        secret := context.ImagorSecret
+	secret := context.ImagorSecret
 
 	app.OnRecordViewRequest("titles").Add(func(e *core.RecordViewEvent) error {
 		return appendImageSecretHook(secret, e.Record)
@@ -116,12 +116,12 @@ func appendImageSliceDetailsSecretHook(secret string, record *m.Record) error {
 
 func getImageSizes(secret string, path string) map[string]string {
 	return map[string]string{
-		"160w":  signImageHmac(secret, "120x0/filters:quality(90)/" + path),
-		"320w":  signImageHmac(secret, "320x0/filters:quality(90)/" + path),
-		"480w":  signImageHmac(secret, "480x0/filters:quality(90)/" + path),
-		"640w":  signImageHmac(secret, "640x0/filters:quality(90)/" + path),
-		"1280w": signImageHmac(secret, "1280x0/filters:quality(90)/" + path),
-		"1920w": signImageHmac(secret, "1920x0/filters:quality(90)/" + path),
+		"160w":  signImageHmac(secret, "120x0/filters:quality(90)/"+path),
+		"320w":  signImageHmac(secret, "320x0/filters:quality(90)/"+path),
+		"480w":  signImageHmac(secret, "480x0/filters:quality(90)/"+path),
+		"640w":  signImageHmac(secret, "640x0/filters:quality(90)/"+path),
+		"1280w": signImageHmac(secret, "1280x0/filters:quality(90)/"+path),
+		"1920w": signImageHmac(secret, "1920x0/filters:quality(90)/"+path),
 	}
 }
 

@@ -9,8 +9,8 @@ import (
 )
 
 type AppContext struct {
-	Logger *zap.Logger
-        ImagorSecret string
+	Logger       *zap.Logger
+	ImagorSecret string
 }
 
 type EchoContext struct {
@@ -24,14 +24,14 @@ func NewContext() (*AppContext, error) {
 		return nil, err
 	}
 
-        imagorSecret, err := imagorSecret()
-        if err != nil {
-                return nil, err
-        }
+	imagorSecret, err := imagorSecret()
+	if err != nil {
+		return nil, err
+	}
 
 	return &AppContext{
-		Logger: logger,
-                ImagorSecret: imagorSecret,
+		Logger:       logger,
+		ImagorSecret: imagorSecret,
 	}, nil
 }
 
@@ -51,13 +51,13 @@ func (context *EchoContext) Logger() *zap.Logger {
 func imagorSecret() (string, error) {
 	value, ok := os.LookupEnv("IMAGOR_SECRET")
 
-        if !ok {
+	if !ok {
 		return "", errors.New("IMAGOR_SECRET not set")
 	}
 
-        return value, nil
+	return value, nil
 }
 
 func (context *EchoContext) ImagorSecret() string {
-        return context.AppContext.ImagorSecret
+	return context.AppContext.ImagorSecret
 }
