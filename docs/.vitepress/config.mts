@@ -11,21 +11,35 @@ export default defineConfig({
     siteTitle: false,
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/markdown-examples' }
+      { text: 'Guide', link: '/guide/getting-started' }
     ],
 
     sidebar: [
       {
-        text: 'Examples',
+        text: 'Introduction',
         items: [
-          { text: 'Markdown Examples', link: '/markdown-examples' },
-          { text: 'Runtime API Examples', link: '/api-examples' }
+          { text: 'Getting Started', link: '/guide/getting-started' },
+        ]
+      },
+      {
+        text: 'Reference',
+        items: [
+          { 
+            text: 'Collections',
+            items: [
+              { text: 'titles', link: '/reference/collections/titles' }, 
+            ]
+          },
         ]
       }
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
-    ]
+      { icon: 'github', link: 'https://github.com/tanamoe' }
+    ],
+
+    search: {
+      provider: 'local'
+    }
   }
 })
