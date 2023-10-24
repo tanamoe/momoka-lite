@@ -3,7 +3,7 @@ module tana.moe/momoka-lite
 go 1.20
 
 require (
-	github.com/labstack/echo/v5 v5.0.0-20230722203903-ec5b858dab61
+	github.com/labstack/echo/v5 69a0de84158f
 	github.com/pocketbase/dbx v1.10.1
 	github.com/pocketbase/pocketbase v0.19.0
 	go.uber.org/zap v1.26.0
