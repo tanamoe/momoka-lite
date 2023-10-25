@@ -4,6 +4,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Tana.moe API",
   description: "A simple manga tracker back-end built with PocketBase",
+  outDir: "dist",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     logo: "/logo.png",
