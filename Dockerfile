@@ -1,7 +1,22 @@
-ARG  BUILDER_IMAGE=golang:1.20-rc-alpine3.17
+ARG  BUN_IMAGE=oven/bun:1.0.7
+ARG  BUILDER_IMAGE=golang:1.21-rc-alpine3.18
 ARG  DISTROLESS_IMAGE=gcr.io/distroless/static
+
 ############################
-# STEP 1 build executable binary
+# STEP 1 build the docs page
+############################
+FROM ${BUN_IMAGE} as docs-builder
+
+WORKDIR /build/docs/
+
+COPY ./docs/ .
+
+RUN bun install --frozen-lockfile
+
+RUN bun docs:build
+
+############################
+# STEP 2 build executable binary
 ############################
 FROM ${BUILDER_IMAGE} as builder
 
@@ -21,13 +36,16 @@ RUN go mod verify
 
 COPY . .
 
+# Copy our pre-built document
+COPY --from=docs-builder /build/docs/dist ./docs/dist
+
 # Build the static binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-      -ldflags='-w -s -extldflags "-static"' -a \
-      -o /go/bin/momoka-lite ./cmd/serve.go
+	-ldflags='-w -s -extldflags "-static"' -a \
+	-o /go/bin/momoka-lite ./cmd/serve.go
 
 ############################
-# STEP 2 build a small image
+# STEP 3 build a small image
 ############################
 # using static nonroot image
 # user:group is nobody:nobody, uid:gid = 65534:65534
