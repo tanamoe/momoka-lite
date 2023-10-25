@@ -12,10 +12,10 @@ func RegisterHooks(
 	if err := registerAppendImageSecretHook(app, context); err != nil {
 		return err
 	}
-        
-        if err := registerDocsHandler(app, context); err != nil {
-                return err
-        }
+
+	if err := registerDocsHandler(app, context); err != nil {
+		return err
+	}
 
 	return nil
 }

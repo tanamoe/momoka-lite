@@ -14,8 +14,8 @@ func registerDocsHandler(
 	context *models.AppContext,
 ) error {
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-                e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./docs/.vitepress/dist"), false))
-                return nil
+		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./docs/.vitepress/dist"), false))
+		return nil
 	})
 	return nil
 }
