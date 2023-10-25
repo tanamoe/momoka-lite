@@ -13,9 +13,5 @@ func RegisterHooks(
 		return err
 	}
 
-	if err := registerDocsHandler(app, context); err != nil {
-		return err
-	}
-
 	return nil
 }

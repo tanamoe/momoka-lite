@@ -8,6 +8,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
+	"tana.moe/momoka-lite/apis"
 	"tana.moe/momoka-lite/hooks"
 	_ "tana.moe/momoka-lite/migrations"
 	"tana.moe/momoka-lite/models"
@@ -23,6 +24,11 @@ func main() {
 	}
 
 	if err := registerMiddleware(app, context); err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	if err := registerApis(app, context); err != nil {
 		log.Fatal(err)
 		return
 	}
@@ -48,6 +54,17 @@ func registerMiddleware(
 ) error {
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.Use(appendAppContext(context))
+		return nil
+	})
+	return nil
+}
+
+func registerApis(
+	app *pocketbase.PocketBase,
+	context *models.AppContext,
+) error {
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		apis.RegisterApis(app, e)
 		return nil
 	})
 	return nil
