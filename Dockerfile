@@ -37,7 +37,7 @@ RUN go mod verify
 COPY . .
 
 # Copy our pre-built document
-COPY --from=docs-builder /build/docs/dist ./docs/
+COPY --from=docs-builder /build/docs/dist ./docs/dist
 
 # Build the static binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
