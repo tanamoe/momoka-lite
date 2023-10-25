@@ -18,12 +18,12 @@ func registerAppendImageSecretHook(
 	secret := context.ImagorSecret
 
 	app.OnRecordViewRequest("titles").Add(func(e *core.RecordViewEvent) error {
-		return appendImageSecretHook(secret, e.Record)
+		return appendImageSecret(secret, e.Record)
 	})
 
 	app.OnRecordsListRequest("titles").Add(func(e *core.RecordsListEvent) error {
 		for _, record := range e.Records {
-			if err := appendImageSecretHook(secret, record); err != nil {
+			if err := appendImageSecret(secret, record); err != nil {
 				return err
 			}
 		}
@@ -32,12 +32,12 @@ func registerAppendImageSecretHook(
 	})
 
 	app.OnRecordViewRequest("books", "publications").Add(func(e *core.RecordViewEvent) error {
-		return appendImageSliceSecretHook(secret, e.Record)
+		return appendImageSliceSecret(secret, e.Record)
 	})
 
 	app.OnRecordsListRequest("books", "publications").Add(func(e *core.RecordsListEvent) error {
 		for _, record := range e.Records {
-			if err := appendImageSliceSecretHook(secret, record); err != nil {
+			if err := appendImageSliceSecret(secret, record); err != nil {
 				return err
 			}
 		}
@@ -46,12 +46,12 @@ func registerAppendImageSecretHook(
 	})
 
 	app.OnRecordViewRequest("bookDetails").Add(func(e *core.RecordViewEvent) error {
-		return appendImageSliceSecretHook(secret, e.Record)
+		return appendImageSliceSecret(secret, e.Record)
 	})
 
 	app.OnRecordsListRequest("bookDetails").Add(func(e *core.RecordsListEvent) error {
 		for _, record := range e.Records {
-			if err := appendImageSliceSecretHook(secret, record); err != nil {
+			if err := appendImageSliceSecret(secret, record); err != nil {
 				return err
 			}
 		}
@@ -62,7 +62,7 @@ func registerAppendImageSecretHook(
 	return nil
 }
 
-func appendImageSecretHook(secret string, record *m.Record) error {
+func appendImageSecret(secret string, record *m.Record) error {
 	cover := record.GetString("cover")
 
 	if cover == "" {
@@ -79,7 +79,7 @@ func appendImageSecretHook(secret string, record *m.Record) error {
 	return nil
 }
 
-func appendImageSliceSecretHook(secret string, record *m.Record) error {
+func appendImageSliceSecret(secret string, record *m.Record) error {
 	covers := record.GetStringSlice("covers")
 
 	var images []map[string]string
@@ -96,8 +96,7 @@ func appendImageSliceSecretHook(secret string, record *m.Record) error {
 	return nil
 }
 
-// TODO: badly named function
-func appendImageSliceDetailsSecretHook(secret string, record *m.Record) error {
+func appendImageSizeMetadata(secret string, record *m.Record) error {
 	covers := record.GetStringSlice("covers")
 
 	var images []map[string]string
