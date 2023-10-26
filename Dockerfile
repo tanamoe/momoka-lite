@@ -13,7 +13,7 @@ COPY ./docs/ .
 
 RUN bun install --frozen-lockfile
 
-RUN bun docs:build
+RUN NODE_ENV=production bun run docs:build
 
 ############################
 # STEP 2 build executable binary
