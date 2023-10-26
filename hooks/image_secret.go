@@ -58,9 +58,9 @@ func appendImageSecret(secret string, record *m.Record) error {
 	collectionId := record.Collection().GetId()
 	id := record.GetId()
 
-	// cId will be return as "rawJSON", therefore [, ] and " will need to be removed
+	// cId will be return as "rawJSON" if requested with record.SchemaData()[imageCoversCollectionField], therefore `"` will need to be removed when requested with GetString
 	if cId := record.GetString(imageCoversCollectionField); cId != "" {
-		replacer := strings.NewReplacer("[", "", "]", "", "\"", "")
+		replacer := strings.NewReplacer("\"", "")
 		collectionId = replacer.Replace(cId)
 	}
 
@@ -90,7 +90,7 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 		id := record.GetId()
 
 		if cId := record.GetString(imageCoversCollectionField); cId != "" {
-			replacer := strings.NewReplacer("[", "", "]", "", "\"", "")
+			replacer := strings.NewReplacer("\"", "")
 			collectionId = replacer.Replace(cId)
 		}
 
