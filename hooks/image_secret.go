@@ -55,18 +55,18 @@ func appendImageSecret(secret string, record *m.Record) error {
 		return nil
 	}
 
-        collectionId := record.Collection().GetId()
-        id := record.GetId()
+	collectionId := record.Collection().GetId()
+	id := record.GetId()
 
-        // cId will be return as "rawJSON", therefore [, ] and " will need to be removed
-        if cId := record.GetString(imageCoversCollectionField); cId != "" {
-                replacer := strings.NewReplacer("[", "", "]", "", "\"", "")
-                collectionId = replacer.Replace(cId)
-        }
+	// cId will be return as "rawJSON", therefore [, ] and " will need to be removed
+	if cId := record.GetString(imageCoversCollectionField); cId != "" {
+		replacer := strings.NewReplacer("[", "", "]", "", "\"", "")
+		collectionId = replacer.Replace(cId)
+	}
 
-        if rId := record.GetString(imageCoversRecordField); rId != "" {
-                id = rId
-        }
+	if rId := record.GetString(imageCoversRecordField); rId != "" {
+		id = rId
+	}
 
 	path := fmt.Sprintf("%s/%s/%s", collectionId, id, cover)
 
@@ -86,21 +86,21 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 	var images []map[string]string
 
 	for _, cover := range covers {
-                collectionId := record.Collection().GetId()
-                id := record.GetId()
+		collectionId := record.Collection().GetId()
+		id := record.GetId()
 
-                if cId := record.GetString(imageCoversCollectionField); cId != "" {
-                        replacer := strings.NewReplacer("[", "", "]", "", "\"", "")
-                        collectionId = replacer.Replace(cId)
-                }
+		if cId := record.GetString(imageCoversCollectionField); cId != "" {
+			replacer := strings.NewReplacer("[", "", "]", "", "\"", "")
+			collectionId = replacer.Replace(cId)
+		}
 
-                if rId := record.GetString(imageCoversRecordField); rId != "" {
-                        id = rId
-                }
+		if rId := record.GetString(imageCoversRecordField); rId != "" {
+			id = rId
+		}
 
-                path := fmt.Sprintf("%s/%s/%s", collectionId, id, cover)
+		path := fmt.Sprintf("%s/%s/%s", collectionId, id, cover)
 
-                images = append(images, getImageSizes(secret, path))
+		images = append(images, getImageSizes(secret, path))
 	}
 
 	record.Set(
