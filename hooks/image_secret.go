@@ -15,15 +15,15 @@ import (
 const (
 	imageCoversField           = "covers"
 	imageCoverField            = "cover"
-	imageCoversCollectionField = "coversCollection"
-	imageCoversRecordField     = "coversRecord"
+	imageCoversCollectionField = "parentCollection"
+	imageCoversRecordField     = "parentId"
 )
 
 func registerAppendImageSecretHook(
 	app *pocketbase.PocketBase,
 	context *models.AppContext,
 ) error {
-	targetCollections := []string{"titles", "books", "publications", "bookDetails"}
+	targetCollections := []string{"titles", "books", "publications", "bookDetails", "titleCovers"}
 	secret := context.ImagorSecret
 
 	app.OnRecordViewRequest(targetCollections...).Add(func(e *core.RecordViewEvent) error {
@@ -48,13 +48,11 @@ func appendImageSecret(secret string, record *m.Record) error {
 		return appendImageSliceSecret(secret, record)
 	}
 
-	cover := record.GetString(imageCoverField)
+	path := getCoverImagePath(record)
 
-	if cover == "" {
+	if path == "" {
 		return nil
 	}
-
-	path := fmt.Sprintf("%s/%s/%s", record.Collection().Id, record.Id, cover)
 
 	record.Set(
 		"metadata",
@@ -72,7 +70,8 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 	var images []map[string]string
 
 	for _, cover := range covers {
-		path := fmt.Sprintf("%s/%s/%s", record.Collection().Id, record.Id, cover)
+		path := getCoverImagePath(record, cover)
+
 		images = append(images, getImageSizes(secret, path))
 	}
 
@@ -84,6 +83,36 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 	)
 
 	return nil
+}
+
+// Return the cover image path from a record.
+// Since PocketBase is having a bug on resolving type with every view record that using UNION,
+//
+//	(https://github.com/pocketbase/pocketbase/discussions/1938#discussioncomment-5143723)
+//	we implement a temporary fix by removing the opening and ending double-quote.
+func getCoverImagePath(record *m.Record, originalCover ...string) string {
+	cover := ""
+	if len(originalCover) <= 0 {
+		cover = record.GetString(imageCoverField)
+	} else {
+		cover = originalCover[0]
+	}
+	if cover == "" {
+		return ""
+	}
+
+	collectionId := record.Collection().GetId()
+	id := record.GetId()
+
+	if id := record.GetString(imageCoversCollectionField); id != "" {
+		collectionId = string(id[1 : len(id)-1])
+	}
+
+	if rId := record.GetString(imageCoversRecordField); rId != "" {
+		id = rId
+	}
+
+	return fmt.Sprintf("%s/%s/%s", collectionId, id, cover)
 }
 
 func appendImageSizeMetadata(secret string, record *m.Record) error {
