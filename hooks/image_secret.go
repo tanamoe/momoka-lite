@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"strings"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -49,26 +48,11 @@ func appendImageSecret(secret string, record *m.Record) error {
 		return appendImageSliceSecret(secret, record)
 	}
 
-	cover := record.GetString(imageCoverField)
+	path := getCoverImagePath(record)
 
-	if cover == "" {
+	if path == "" {
 		return nil
 	}
-
-	collectionId := record.Collection().GetId()
-	id := record.GetId()
-
-	// cId will be return as "rawJSON" if requested with record.SchemaData()[imageCoversCollectionField], therefore `"` will need to be removed when requested with GetString
-	if cId := record.GetString(imageCoversCollectionField); cId != "" {
-		replacer := strings.NewReplacer("\"", "")
-		collectionId = replacer.Replace(cId)
-	}
-
-	if rId := record.GetString(imageCoversRecordField); rId != "" {
-		id = rId
-	}
-
-	path := fmt.Sprintf("%s/%s/%s", collectionId, id, cover)
 
 	record.Set(
 		"metadata",
@@ -86,19 +70,7 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 	var images []map[string]string
 
 	for _, cover := range covers {
-		collectionId := record.Collection().GetId()
-		id := record.GetId()
-
-		if cId := record.GetString(imageCoversCollectionField); cId != "" {
-			replacer := strings.NewReplacer("\"", "")
-			collectionId = replacer.Replace(cId)
-		}
-
-		if rId := record.GetString(imageCoversRecordField); rId != "" {
-			id = rId
-		}
-
-		path := fmt.Sprintf("%s/%s/%s", collectionId, id, cover)
+		path := getCoverImagePath(record, cover)
 
 		images = append(images, getImageSizes(secret, path))
 	}
@@ -111,6 +83,36 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 	)
 
 	return nil
+}
+
+// Return the cover image path from a record.
+// Since pocketbase having a bug on resolving type with every view record that using UNION
+//
+//	(https://github.com/pocketbase/pocketbase/discussions/1938#discussioncomment-5143723)
+//	we just implement a temporary fix by removing the opening and ending double-quote.
+func getCoverImagePath(record *m.Record, originalCover ...string) string {
+	cover := ""
+	if len(originalCover) <= 0 {
+		cover = record.GetString(imageCoverField)
+	} else {
+		cover = originalCover[0]
+	}
+	if cover == "" {
+		return ""
+	}
+
+	collectionId := record.Collection().GetId()
+	id := record.GetId()
+
+	if id := record.GetString(imageCoversCollectionField); id != "" {
+		collectionId = string(id[1 : len(id)-1])
+	}
+
+	if rId := record.GetString(imageCoversRecordField); rId != "" {
+		id = rId
+	}
+
+	return fmt.Sprintf("%s/%s/%s", collectionId, id, cover)
 }
 
 func appendImageSizeMetadata(secret string, record *m.Record) error {
