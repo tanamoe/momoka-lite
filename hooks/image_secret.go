@@ -15,15 +15,15 @@ import (
 const (
 	imageCoversField           = "covers"
 	imageCoverField            = "cover"
-	imageCoversCollectionField = "coversCollection"
-	imageCoversRecordField     = "coversRecord"
+	imageCoversCollectionField = "parentCollection"
+	imageCoversRecordField     = "parentId"
 )
 
 func registerAppendImageSecretHook(
 	app *pocketbase.PocketBase,
 	context *models.AppContext,
 ) error {
-	targetCollections := []string{"titles", "books", "publications", "bookDetails"}
+	targetCollections := []string{"titles", "books", "publications", "bookDetails", "titleCovers"}
 	secret := context.ImagorSecret
 
 	app.OnRecordViewRequest(targetCollections...).Add(func(e *core.RecordViewEvent) error {
@@ -86,10 +86,10 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 }
 
 // Return the cover image path from a record.
-// Since pocketbase having a bug on resolving type with every view record that using UNION
+// Since PocketBase is having a bug on resolving type with every view record that using UNION,
 //
 //	(https://github.com/pocketbase/pocketbase/discussions/1938#discussioncomment-5143723)
-//	we just implement a temporary fix by removing the opening and ending double-quote.
+//	we implement a temporary fix by removing the opening and ending double-quote.
 func getCoverImagePath(record *m.Record, originalCover ...string) string {
 	cover := ""
 	if len(originalCover) <= 0 {
