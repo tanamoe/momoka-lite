@@ -23,7 +23,7 @@ func registerAppendImageSecretHook(
 	app *pocketbase.PocketBase,
 	context *models.AppContext,
 ) error {
-	targetCollections := []string{"titles", "books", "publications", "bookDetails", "titleCovers"}
+	targetCollections := []string{"titles", "books", "publications", "bookDetails", "releaseDetails", "titleCovers"}
 	secret := context.ImagorSecret
 
 	app.OnRecordViewRequest(targetCollections...).Add(func(e *core.RecordViewEvent) error {
