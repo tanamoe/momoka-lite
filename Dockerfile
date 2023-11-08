@@ -1,4 +1,4 @@
-ARG  BUN_IMAGE=oven/bun:1.0.7
+ARG  BUN_IMAGE=oven/bun:1.0.10
 ARG  BUILDER_IMAGE=golang:1.21-rc-alpine3.18
 ARG  DISTROLESS_IMAGE=gcr.io/distroless/static
 
