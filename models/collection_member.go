@@ -1,6 +1,8 @@
 package models
 
 import (
+	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/models"
 )
 
@@ -23,4 +25,8 @@ type CollectionMember struct {
 
 func (m *CollectionMember) TableName() string {
 	return "collectionMembers"
+}
+
+func CollectionMemberQuery(dao *daos.Dao) *dbx.SelectQuery {
+	return dao.ModelQuery(&CollectionMember{})
 }

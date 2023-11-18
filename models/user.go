@@ -1,6 +1,8 @@
 package models
 
 import (
+	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/models"
 )
 
@@ -19,4 +21,8 @@ type User struct {
 
 func (m *User) TableName() string {
 	return "users"
+}
+
+func UserQuery(dao *daos.Dao) *dbx.SelectQuery {
+	return dao.ModelQuery(&User{})
 }
