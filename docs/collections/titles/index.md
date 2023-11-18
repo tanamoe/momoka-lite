@@ -1,5 +1,9 @@
 # titles
 
+### <Badge type="info" text="GET" /> /api/collections/title/records
+
+The **titles** collection serve book series.
+
 ## Schema
 | Field | Type | Notes |
 |---|---|---|
