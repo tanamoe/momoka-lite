@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -10,36 +10,54 @@ export default defineConfig({
     logo: "/logo.png",
     siteTitle: false,
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/getting-started' }
+      { text: "Home", link: "/" },
+      { text: "Guide", link: "/guide/getting-started" },
     ],
 
     sidebar: [
       {
-        text: 'Introduction',
+        text: "Introduction",
+        items: [{ text: "Getting Started", link: "/getting-started" }],
+      },
+      {
+        text: "Guides",
         items: [
-          { text: 'Getting Started', link: '/guide/getting-started' },
+          {
+            text: "Metadata",
+            link: "/guide/metadata",
+          }
         ]
       },
       {
-        text: 'Reference',
+        text: "Collections",
         items: [
-          { 
-            text: 'Collections',
+          {
+            text: "titles",
+            collapsed: true,
+            link: "/collections/titles/index",
             items: [
-              { text: 'titles', link: '/reference/collections/titles' }, 
-            ]
+              {
+                text: "releases",
+                link: "/collections/titles/releases",
+              },
+              {
+                text: "publications",
+                link: "/collections/titles/publications",
+              },
+              {
+                text: "books",
+                link: "/collections/titles/books",
+              },
+            ],
           },
-        ]
-      }
+        ],
+      },
     ],
 
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/tanamoe' }
-    ],
+    socialLinks: [{ icon: "github", link: "https://github.com/tanamoe" }],
 
     search: {
-      provider: 'local'
-    }
-  }
-})
+      provider: "local",
+    },
+  },
+});
