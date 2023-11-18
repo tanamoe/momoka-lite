@@ -1,15 +1,21 @@
 # Getting Started
-Tana.moe back-end was built mainly using [PocketBase](https://pocketbase.io/), which users could request and send data using RESTful APIs.
+Tana.moe back-end was built with [PocketBase](https://pocketbase.io/), where users could request and send data with RESTful APIs.
 
-## API endpoints
-Mostly all of Tana.moe API endpoints are using the same base URL, that is:
+## API endpoint
 ```
 https://tana.moe/api/
 ```
-Otherwise, our image processing server URL is at:
+
+### Images
+For fetching and serving pre-processed images, use our [imagor](https://github.com/cshum/imagor#image-endpoint) image processing endpoint.
 ```
 https://image.tana.moe/
 ```
+
+::: info
+The endpoint requires image path with their respective hash (as in, `/unsafe/` are not allowed).
+Custom filter arguments are not authorised.
+:::
 
 ## Next steps
 Discover [Tana.moe API reference](/reference).
