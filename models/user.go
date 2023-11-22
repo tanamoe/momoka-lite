@@ -1,6 +1,8 @@
 package models
 
 import (
+	"database/sql"
+
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/models"
@@ -25,4 +27,19 @@ func (m *User) TableName() string {
 
 func UserQuery(dao *daos.Dao) *dbx.SelectQuery {
 	return dao.ModelQuery(&User{})
+}
+
+func FindUserById(dao *daos.Dao, id string) (*User, error) {
+	user := &User{}
+	err := UserQuery(dao).
+		AndWhere(dbx.HashExp{"id": id}).
+		Limit(1).
+		One(user)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

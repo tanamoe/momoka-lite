@@ -1,6 +1,8 @@
 package models
 
 import (
+	"database/sql"
+
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/models"
@@ -35,4 +37,19 @@ func (m *Collection) TableName() string {
 
 func CollectionQuery(dao *daos.Dao) *dbx.SelectQuery {
 	return dao.ModelQuery(&Collection{})
+}
+
+func FindCollectionById(dao *daos.Dao, id string) (*Collection, error) {
+	collection := &Collection{}
+	err := CollectionQuery(dao).
+		AndWhere(dbx.HashExp{"id": id}).
+		Limit(1).
+		One(collection)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return collection, nil
 }
