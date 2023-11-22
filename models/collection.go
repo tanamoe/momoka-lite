@@ -23,6 +23,7 @@ type Collection struct {
 	models.BaseModel
 
 	OwnerId     string               `db:"publication" json:"publication"`
+	Owner       *User                `db:"owner,empty"`
 	Visibility  CollectionVisibility `db:"visibility" json:"visibility"`
 	PublishDate types.DateTime       `db:"publishDate" json:"publishDate"`
 	Name        string               `db:"name" json:"name"`
@@ -52,4 +53,20 @@ func FindCollectionById(dao *daos.Dao, id string) (*Collection, error) {
 		return nil, err
 	}
 	return collection, nil
+}
+
+func (m *Collection) Expand(dao *daos.Dao, e ExpandMap) error {
+	if e == nil {
+		return nil
+	}
+
+	if _, exist := e["owner"]; exist {
+		owner, err := FindUserById(dao, m.OwnerId)
+		if err != nil {
+			return err
+		}
+		m.Owner = owner
+	}
+
+	return nil
 }

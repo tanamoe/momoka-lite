@@ -45,3 +45,7 @@ func FindBookById(dao *daos.Dao, id string) (*Book, error) {
 	}
 	return book, nil
 }
+
+func (m *Book) Expand(dao *daos.Dao, e ExpandMap) error {
+	return nil
+}

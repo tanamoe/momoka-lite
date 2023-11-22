@@ -43,3 +43,7 @@ func FindUserById(dao *daos.Dao, id string) (*User, error) {
 	}
 	return user, nil
 }
+
+func (m *User) Expand(dao *daos.Dao, e ExpandMap) error {
+	return nil
+}
