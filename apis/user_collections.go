@@ -11,6 +11,7 @@ import (
 	"github.com/pocketbase/pocketbase/daos"
 	pmodels "github.com/pocketbase/pocketbase/models"
 	"tana.moe/momoka-lite/models"
+	"tana.moe/momoka-lite/tools"
 )
 
 func registerUserCollectionsRoute(
@@ -77,7 +78,7 @@ func fetchUserJoinedCollections(
 	publicOnly bool,
 ) (items []*models.CollectionMember, err error) {
 	collectionTableName := (&models.Collection{}).TableName()
-	collectionMemberTableName := (&models.CollectionMember{}).TableName()
+	collectionMembersTableName := (&models.CollectionMember{}).TableName()
 
 	query := models.CollectionMemberQuery(dao).
 		LeftJoin(
@@ -85,7 +86,7 @@ func fetchUserJoinedCollections(
 			dbx.NewExp(
 				fmt.Sprintf(
 					"%s.collection = %s.id",
-					collectionMemberTableName,
+					collectionMembersTableName,
 					collectionTableName,
 				),
 			),
@@ -106,5 +107,51 @@ func fetchCommonJoinedCollections(
 	targetId string,
 	viewerId string,
 ) (items []*models.CollectionMember, err error) {
-	return nil, unimplementedError
+	collectionTableName := (&models.Collection{}).TableName()
+	collectionMembersTableName := (&models.CollectionMember{}).TableName()
+
+	weightColumn := fmt.Sprintf(
+		"(CASE WHEN %s.visibility='%s' THEN 3 "+
+			"WHEN %s.user='%s' THEN 2 "+
+			"ELSE 1 END) "+
+			"AS weight",
+		collectionTableName, models.CollectionPublic, collectionMembersTableName, tools.EscapeSql(viewerId),
+	)
+	scoreColumn := "SUM(weight)"
+	minScore := 3
+
+	err = models.CollectionMemberQuery(dao).
+		Select(
+			fmt.Sprintf("%s.*", collectionMembersTableName),
+			weightColumn,
+		).
+		LeftJoin(
+			collectionTableName,
+			dbx.NewExp(
+				fmt.Sprintf(
+					"%s.collection = %s.id",
+					collectionMembersTableName,
+					collectionTableName,
+				),
+			),
+		).
+		Where(
+			dbx.HashExp{
+				fmt.Sprintf("%s.user", collectionMembersTableName): []any{
+					targetId,
+					viewerId,
+				},
+			},
+		).
+		GroupBy(fmt.Sprintf("%s.id", collectionTableName)).
+		Having(
+			dbx.NewExp(
+				fmt.Sprintf("%s >= {:minScore}", scoreColumn),
+				dbx.Params{
+					"minScore": minScore,
+				},
+			),
+		).
+		All(&items)
+	return
 }
