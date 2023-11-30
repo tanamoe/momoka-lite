@@ -40,6 +40,12 @@ type listResponse[T comparable] struct {
 	Items      []T  `json:"items"`
 }
 
+type upsertResponse[T comparable] struct {
+	response
+
+	Item T `json:"item"`
+}
+
 type errorResponse struct {
 	response
 	Message string `json:"message"`
@@ -60,6 +66,13 @@ type listHandlerFunction[T comparable] func(
 	perPage int,
 	expand models.ExpandMap,
 ) (items []T, rpage uint, rperPage int, totalItems uint, totalPages uint, err error)
+
+type upsertHandlerFunction[T comparable] func(
+	app *pocketbase.PocketBase,
+	e *core.ServeEvent,
+	c echo.Context,
+	expand models.ExpandMap,
+) (item T, err error)
 
 func RegisterApis(app *pocketbase.PocketBase, e *core.ServeEvent) error {
 	if err := registerDocsRoute(app, e); err != nil {
@@ -158,6 +171,32 @@ func listRouteHandler[T comparable](
 				TotalItems: totalItems,
 				TotalPages: totalPages,
 				Items:      items,
+			},
+		)
+	}
+}
+
+func upsertRouteHandler[T comparable](
+	app *pocketbase.PocketBase,
+	e *core.ServeEvent,
+	handler upsertHandlerFunction[T],
+) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		expand, err := extractExpandMap(c)
+		if err != nil {
+			return handleError(app, e, c, errors.Join(err, invalidRequestError))
+		}
+		r, err := handler(app, e, c, expand)
+		if err != nil {
+			return handleError(app, e, c, err)
+		}
+		return c.JSON(
+			http.StatusOK,
+			upsertResponse[T]{
+				response: response{
+					Success: true,
+				},
+				Item: r,
 			},
 		)
 	}
