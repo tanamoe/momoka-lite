@@ -22,8 +22,8 @@ const (
 type Collection struct {
 	models.BaseModel
 
-	OwnerId     string               `db:"publication" json:"publication"`
-	Owner       *User                `db:"owner,empty"`
+	OwnerId     string               `db:"owner" json:"ownerId"`
+	Owner       *User                `json:"owner,omitempty"`
 	Visibility  CollectionVisibility `db:"visibility" json:"visibility"`
 	PublishDate types.DateTime       `db:"publishDate" json:"publishDate"`
 	Name        string               `db:"name" json:"name"`
