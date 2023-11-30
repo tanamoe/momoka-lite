@@ -575,3 +575,4 @@ FodyWeavers.xsd
 
 ./build/
 pb_data
+.env
