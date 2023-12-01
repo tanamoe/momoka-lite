@@ -74,6 +74,12 @@ type upsertHandlerFunction[T comparable] func(
 	expand models.ExpandMap,
 ) (item T, err error)
 
+type deleteHandlerFunction func(
+	app *pocketbase.PocketBase,
+	e *core.ServeEvent,
+	c echo.Context,
+) (err error)
+
 func RegisterApis(app *pocketbase.PocketBase, e *core.ServeEvent) error {
 	if err := registerDocsRoute(app, e); err != nil {
 		return err
@@ -197,6 +203,25 @@ func upsertRouteHandler[T comparable](
 					Success: true,
 				},
 				Item: r,
+			},
+		)
+	}
+}
+
+func deleteRouteHandler[T comparable](
+	app *pocketbase.PocketBase,
+	e *core.ServeEvent,
+	handler deleteHandlerFunction,
+) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		err := handler(app, e, c)
+		if err != nil {
+			return handleError(app, e, c, err)
+		}
+		return c.JSON(
+			http.StatusOK,
+			response{
+				Success: true,
 			},
 		)
 	}
