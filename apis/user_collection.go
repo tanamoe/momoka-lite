@@ -50,7 +50,11 @@ func onRequestUserCollectionById(
 	if admin != nil {
 		return collection, nil
 	}
-	canBeAccessed, err := collection.CanBeAccessedBy(app.Dao(), record.Id)
+	userId := ""
+	if record != nil {
+		userId = record.Id
+	}
+	canBeAccessed, err := collection.CanBeAccessedBy(app.Dao(), userId)
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +97,14 @@ func onRequestBooksInCollection(
 	page uint,
 	perPage int,
 	expand models.ExpandMap,
-) (items []*models.Book, rpage uint, rperPage int, totalItems uint, totalPages uint, err error) {
+) (items []*models.CollectionBook, rpage uint, rperPage int, totalItems uint, totalPages uint, err error) {
 	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
 	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
 	collectionId := c.PathParam("collectionId")
 	collection, err := models.FindCollectionById(app.Dao(), collectionId)
+	if perPage <= 0 {
+		perPage = 25
+	}
 	if err != nil {
 		return nil, page, perPage, 0, 0, err
 	}
@@ -107,10 +114,11 @@ func onRequestBooksInCollection(
 	if admin != nil {
 		items, err = fetchBooksInCollection(app.Dao(), collection, page, perPage)
 	} else {
-		if record == nil {
-			return nil, page, perPage, 0, 0, unauthorizedError
+		userId := ""
+		if record != nil {
+			userId = record.Id
 		}
-		canBeAccessBy, err := collection.CanBeAccessedBy(app.Dao(), record.Id)
+		canBeAccessBy, err := collection.CanBeAccessedBy(app.Dao(), userId)
 		if err != nil {
 			return nil, page, perPage, 0, 0, err
 		}
@@ -139,9 +147,9 @@ func booksInCollectionQuery(
 	dao *daos.Dao,
 	collection *models.Collection,
 ) *dbx.SelectQuery {
-	return models.BookQuery(dao).
+	return models.CollectionBookQuery(dao).
 		AndWhere(dbx.HashExp{
-			"id": collection.Id,
+			"collection": collection.Id,
 		})
 }
 
@@ -150,11 +158,11 @@ func fetchBooksInCollection(
 	collection *models.Collection,
 	page uint,
 	perPage int,
-) (items []*models.Book, err error) {
-	items = []*models.Book{}
+) (items []*models.CollectionBook, err error) {
+	items = []*models.CollectionBook{}
 	err = booksInCollectionQuery(dao, collection).
 		Limit(int64(perPage)).
-		Offset(int64(page) * int64(perPage)).
+		Offset(int64(page-1) * int64(perPage)).
 		All(&items)
 	return
 }
@@ -163,8 +171,14 @@ func countBooksInCollection(
 	dao *daos.Dao,
 	collection *models.Collection,
 ) (count uint, err error) {
+	type countData struct {
+		Count uint `db:"count"`
+	}
+	result := &countData{
+		Count: 0,
+	}
 	err = booksInCollectionQuery(dao, collection).
 		Select("COUNT(id)").
-		One(&count)
-	return
+		One(&result)
+	return result.Count, err
 }

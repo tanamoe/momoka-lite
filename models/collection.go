@@ -88,23 +88,31 @@ func FindUserDefaultCollection(dao *daos.Dao, userId string) (*Collection, error
 }
 
 func (m *Collection) userHadRole(dao *daos.Dao, userId string, roles ...CollectionAccessRole) (bool, error) {
-	count := 0
+	type countData struct {
+		Count uint `db:"count"`
+	}
+	count := &countData{
+		Count: 0,
+	}
 	var rolesAsAny []any
 	for _, role := range roles {
 		rolesAsAny = append(rolesAsAny, role)
 	}
 	err := CollectionMemberQuery(dao).
-		Select("COUNT(id)").
+		Select("COUNT(id) AS count").
 		AndWhere(dbx.HashExp{
 			"collection": m.Id,
 			"user":       userId,
 			"role":       rolesAsAny,
 		}).
 		One(&count)
-	return count > 0, err
+	return count.Count > 0, err
 }
 
 func (m *Collection) CanBeAccessedBy(dao *daos.Dao, userId string) (bool, error) {
+	if m.OwnerId == userId {
+		return true, nil
+	}
 	if m.Visibility != CollectionPrivate {
 		return true, nil
 	}
