@@ -21,9 +21,9 @@ type CollectionBook struct {
 	models.BaseModel
 
 	CollectionId string            `db:"collection" json:"collectionId"`
-	Collection   *Collection       `json:"collection,emitempty"`
+	Collection   *Collection       `json:"collection,omitempty"`
 	BookId       string            `db:"book" json:"bookId"`
-	Book         *Book             `json:"book,emitempty"`
+	Book         *Book             `json:"book,omitempty"`
 	Quantity     int               `db:"quantity" json:"quantity"`
 	Status       BookReadingStatus `db:"status" json:"status"`
 }

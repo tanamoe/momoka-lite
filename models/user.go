@@ -14,7 +14,7 @@ type User struct {
 	models.BaseModel
 
 	Username    string `db:"username" json:"username"`
-	Email       string `db:"email" json:"email"`
+	Email       string `db:"email" json:"-"`
 	DisplayName string `db:"displayName" json:"displayName"`
 	Bio         string `db:"bio" json:"bio"`
 	Avatar      string `db:"avatar" json:"avatar"`
