@@ -78,9 +78,9 @@ func (m *Collection) userHadRole(dao *daos.Dao, userId string, roles ...Collecti
 	err := CollectionMemberQuery(dao).
 		Select("COUNT(id)").
 		Where(&dbx.HashExp{
-			"collectionId": m.Id,
-			"userId":       userId,
-			"role":         rolesAsAny,
+			"collection": m.Id,
+			"user":       userId,
+			"role":       rolesAsAny,
 		}).
 		One(&count)
 	return count > 0, err
