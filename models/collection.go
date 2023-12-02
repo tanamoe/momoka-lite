@@ -69,6 +69,24 @@ func (m *Collection) Expand(dao *daos.Dao, e ExpandMap) error {
 	return nil
 }
 
+func FindUserDefaultCollection(dao *daos.Dao, userId string) (*Collection, error) {
+	collection := &Collection{}
+	err := CollectionQuery(dao).
+		AndWhere(dbx.HashExp{
+			"owner":   userId,
+			"default": true,
+		}).
+		Limit(1).
+		One(collection)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return collection, nil
+}
+
 func (m *Collection) userHadRole(dao *daos.Dao, userId string, roles ...CollectionAccessRole) (bool, error) {
 	count := 0
 	var rolesAsAny []any
@@ -77,7 +95,7 @@ func (m *Collection) userHadRole(dao *daos.Dao, userId string, roles ...Collecti
 	}
 	err := CollectionMemberQuery(dao).
 		Select("COUNT(id)").
-		Where(&dbx.HashExp{
+		AndWhere(dbx.HashExp{
 			"collection": m.Id,
 			"user":       userId,
 			"role":       rolesAsAny,
