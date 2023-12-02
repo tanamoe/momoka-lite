@@ -6,7 +6,6 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/models"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 var _ models.Model = (*Collection)(nil)
@@ -25,7 +24,6 @@ type Collection struct {
 	OwnerId     string               `db:"owner" json:"ownerId"`
 	Owner       *User                `json:"owner,omitempty"`
 	Visibility  CollectionVisibility `db:"visibility" json:"visibility"`
-	PublishDate types.DateTime       `db:"publishDate" json:"publishDate"`
 	Name        string               `db:"name" json:"name"`
 	Default     bool                 `db:"default" json:"default"`
 	Description string               `db:"description" json:"description"`
@@ -69,4 +67,35 @@ func (m *Collection) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	return nil
+}
+
+func (m *Collection) userHadRole(dao *daos.Dao, userId string, roles ...CollectionAccessRole) (bool, error) {
+	count := 0
+	var rolesAsAny []any
+	for _, role := range roles {
+		rolesAsAny = append(rolesAsAny, role)
+	}
+	err := CollectionMemberQuery(dao).
+		Select("COUNT(id)").
+		Where(&dbx.HashExp{
+			"collectionId": m.Id,
+			"userId":       userId,
+			"role":         rolesAsAny,
+		}).
+		One(&count)
+	return count > 0, err
+}
+
+func (m *Collection) CanBeAccessedBy(dao *daos.Dao, userId string) (bool, error) {
+	if m.Visibility != CollectionPrivate {
+		return true, nil
+	}
+	return m.userHadRole(dao, userId, CollectionMemberRole, CollectionEditorRole)
+}
+
+func (m *Collection) CanBeEditedBy(dao *daos.Dao, userId string) (bool, error) {
+	if m.OwnerId == userId {
+		return true, nil
+	}
+	return m.userHadRole(dao, userId, CollectionEditorRole)
 }
