@@ -17,5 +17,9 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerOnCollectionOwnerRemove(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }
