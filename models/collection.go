@@ -22,7 +22,7 @@ type Collection struct {
 	models.BaseModel
 
 	OwnerId     string               `db:"owner" json:"ownerId"`
-	Owner       *User                `json:"owner,omitempty"`
+	Owner       *User                `db:"-" json:"owner,omitempty"`
 	Visibility  CollectionVisibility `db:"visibility" json:"visibility"`
 	Name        string               `db:"name" json:"name"`
 	Default     bool                 `db:"default" json:"default"`

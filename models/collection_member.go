@@ -21,9 +21,9 @@ type CollectionMember struct {
 	models.BaseModel
 
 	CollectionId string               `db:"collection" json:"collectionId"`
-	Collection   *Collection          `json:"collection,omitempty"`
+	Collection   *Collection          `db:"-" json:"collection,omitempty"`
 	UserId       string               `db:"user" json:"userId"`
-	User         *User                `json:"user,omitempty"`
+	User         *User                `db:"-" json:"user,omitempty"`
 	Role         CollectionAccessRole `db:"role" json:"role"`
 }
 
