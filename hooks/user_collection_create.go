@@ -14,7 +14,11 @@ func registerOnUserCollectionCreate(
 		OnModelAfterCreate((&models.Collection{}).TableName()).
 		Add(
 			func(e *core.ModelEvent) error {
-				collection := e.Model.(*models.Collection)
+				collectionId := e.Model.GetId()
+				collection, err := models.FindCollectionById(app.Dao(), collectionId)
+				if err != nil {
+					return err
+				}
 				if err := app.Dao().Save(&models.CollectionMember{
 					CollectionId: collection.Id,
 					UserId:       collection.OwnerId,

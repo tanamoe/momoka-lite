@@ -18,7 +18,11 @@ func registerOnCollectionOwnerRemove(
 		OnModelAfterDelete((&models.CollectionMember{}).TableName()).
 		Add(
 			func(e *core.ModelEvent) error {
-				collectionMember := e.Model.(*models.CollectionMember)
+				collectionMemberId := e.Model.GetId()
+				collectionMember, err := models.FindCollectionMemberById(app.Dao(), collectionMemberId)
+				if err != nil {
+					return err
+				}
 				if err := collectionMember.Expand(app.Dao(), models.ExpandMap{
 					"collection": {},
 				}); err != nil {
