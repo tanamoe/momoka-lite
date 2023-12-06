@@ -13,5 +13,9 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerOnUserCollectionCreate(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }
