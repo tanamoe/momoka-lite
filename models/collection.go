@@ -27,7 +27,7 @@ type Collection struct {
 	Name        string               `db:"name" json:"name"`
 	Default     bool                 `db:"default" json:"default"`
 	Description string               `db:"description" json:"description"`
-	Order       string               `db:"order" json:"order"`
+	Order       int                  `db:"order" json:"order"`
 }
 
 func (m *Collection) TableName() string {

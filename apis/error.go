@@ -14,6 +14,7 @@ import (
 var (
 	invalidRequestError = errors.New("Invalid request.")
 	unauthorizedError   = errors.New("Unauthorized.")
+	forbiddenError      = errors.New("Forbidden.")
 	notFoundError       = errors.New("Not found.")
 	unimplementedError  = errors.New("Unimplemented.")
 )
@@ -44,6 +45,18 @@ func handleError(
 					Success: false,
 				},
 				Message: "Unauthorized.",
+			},
+		)
+	}
+
+	if errors.Is(err, forbiddenError) {
+		return c.JSON(
+			http.StatusBadRequest,
+			errorResponse{
+				response: response{
+					Success: false,
+				},
+				Message: "Forbidden.",
 			},
 		)
 	}
