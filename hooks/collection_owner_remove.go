@@ -15,7 +15,7 @@ func registerOnCollectionOwnerRemove(
 	context *models.AppContext,
 ) error {
 	app.
-		OnModelAfterDelete((&models.CollectionMember{}).TableName()).
+		OnModelBeforeDelete((&models.CollectionMember{}).TableName()).
 		Add(
 			func(e *core.ModelEvent) error {
 				collectionMemberId := e.Model.GetId()
