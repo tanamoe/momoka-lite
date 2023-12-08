@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/daos"
@@ -22,12 +23,12 @@ type Collection struct {
 	models.BaseModel
 
 	OwnerId     string               `db:"owner" json:"ownerId"`
-	Owner       *User                `json:"owner,omitempty"`
+	Owner       *User                `db:"-" json:"owner,omitempty"`
 	Visibility  CollectionVisibility `db:"visibility" json:"visibility"`
 	Name        string               `db:"name" json:"name"`
 	Default     bool                 `db:"default" json:"default"`
 	Description string               `db:"description" json:"description"`
-	Order       string               `db:"order" json:"order"`
+	Order       int                  `db:"order" json:"order"`
 }
 
 func (m *Collection) TableName() string {
@@ -124,4 +125,30 @@ func (m *Collection) CanBeEditedBy(dao *daos.Dao, userId string) (bool, error) {
 		return true, nil
 	}
 	return m.userHadRole(dao, userId, CollectionEditorRole)
+}
+
+func (m *Collection) AddMember(dao *daos.Dao, userId string, role CollectionAccessRole) error {
+	member := &CollectionMember{
+		CollectionId: m.Id,
+		UserId:       userId,
+		Role:         role,
+	}
+	existMember := &CollectionMember{}
+	err := CollectionMemberQuery(dao).
+		AndWhere(dbx.HashExp{
+			"collection": m.Id,
+			"user":       userId,
+		}).
+		One(&existMember)
+	if (err != nil) && (!errors.Is(err, sql.ErrNoRows)) {
+		return err
+	}
+	if err == nil {
+		member = existMember
+		member.Role = role
+	}
+	if err := dao.Save(member); err != nil {
+		return err
+	}
+	return nil
 }

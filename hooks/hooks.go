@@ -13,5 +13,17 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerOnUpdateCollectionOwner(app, context); err != nil {
+		return err
+	}
+
+	if err := registerOnCollectionOwnerRemove(app, context); err != nil {
+		return err
+	}
+
+	if err := registerOnUpdateDefaultCollection(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }
