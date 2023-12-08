@@ -21,5 +21,9 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerOnUpdateDefaultCollection(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }

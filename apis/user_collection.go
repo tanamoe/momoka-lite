@@ -210,6 +210,9 @@ func onCollectionUpsertRequest(
 			if newOwner == nil {
 				return nil, invalidRequestError
 			}
+			if admin == nil {
+				item.Default = false
+			}
 		}
 		if (admin == nil) && (record.Id != originalCollection.OwnerId) {
 			if item.Default != originalCollection.Default {
