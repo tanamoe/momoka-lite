@@ -263,9 +263,9 @@ func onCollectionUpsertRequest(
 	if err = item.Expand(app.Dao(), expand); err != nil {
 		return nil, err
 	}
-	item.Id = record.Id
-	item.Created = record.Created
-	item.Updated = record.Updated
+	if item, err = models.FindCollectionById(app.Dao(), r.Id); err != nil {
+		return nil, err
+	}
 	return item, nil
 }
 
