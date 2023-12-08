@@ -13,7 +13,7 @@ func RegisterHooks(
 		return err
 	}
 
-	if err := registerOnUserCollectionCreate(app, context); err != nil {
+	if err := registerOnUpdateCollectionOwner(app, context); err != nil {
 		return err
 	}
 
