@@ -20,7 +20,7 @@ func registerAppendInCollectionsMetadataHook(
 	app *pocketbase.PocketBase,
 	context *models.AppContext,
 ) error {
-	targetCollections := []string{"books"}
+	targetCollections := []string{"books", "bookDetails"}
 	app.OnRecordViewRequest(targetCollections...).Add(func(e *core.RecordViewEvent) error {
 		user, _ := e.HttpContext.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
 		if user == nil {
