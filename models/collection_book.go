@@ -26,6 +26,7 @@ type CollectionBook struct {
 	Book         *Book             `db:"-" json:"book,omitempty"`
 	Quantity     int               `db:"quantity" json:"quantity"`
 	Status       BookReadingStatus `db:"status" json:"status"`
+	Notes        string            `db:"notes" json:"notes"`
 }
 
 func (m *CollectionBook) TableName() string {
@@ -38,7 +39,7 @@ func CollectionBookQuery(dao *daos.Dao) *dbx.SelectQuery {
 
 func FindCollectionBookById(dao *daos.Dao, id string) (*CollectionBook, error) {
 	collectionBook := &CollectionBook{}
-	err := CollectionQuery(dao).
+	err := CollectionBookQuery(dao).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(collectionBook)
