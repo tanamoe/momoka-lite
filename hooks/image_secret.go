@@ -54,13 +54,12 @@ func appendImageSecret(secret string, record *m.Record) error {
 		return nil
 	}
 
-	record.Set(
-		"metadata",
+	appendMetadata(
+		record,
 		map[string]interface{}{
 			"images": getImageSizes(secret, path),
 		},
 	)
-
 	return nil
 }
 
@@ -75,13 +74,12 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 		images = append(images, getImageSizes(secret, path))
 	}
 
-	record.Set(
-		"metadata",
+	appendMetadata(
+		record,
 		map[string]interface{}{
 			"images": images,
 		},
 	)
-
 	return nil
 }
 
@@ -130,10 +128,12 @@ func appendImageSizeMetadata(secret string, record *m.Record) error {
 		images = append(images, getImageSizes(secret, path))
 	}
 
-	record.Set("metadata", map[string]interface{}{
-		"images": images,
-	})
-
+	appendMetadata(
+		record,
+		map[string]interface{}{
+			"images": images,
+		},
+	)
 	return nil
 }
 
