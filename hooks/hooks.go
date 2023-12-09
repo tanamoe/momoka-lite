@@ -25,5 +25,9 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerAppendInCollectionsMetadataHook(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }
