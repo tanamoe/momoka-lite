@@ -44,6 +44,11 @@ func registerUserCollectionRoute(
 		upsertRouteHandler(app, core, onUpsertBookToCollectionRequest),
 		apis.ActivityLogger(app),
 	)
+	core.Router.DELETE(
+		"/api/user-collection/:collectionId/books/:bookId",
+		deleteRouteHandler(app, core, onDeleteBookFromCollectionRequest),
+		apis.ActivityLogger(app),
+	)
 	core.Router.GET(
 		"/api/user-collection/:collectionId/members",
 		listRouteHandler(app, core, onRequestMembersInCollection),
@@ -413,6 +418,58 @@ func onUpsertBookToCollectionRequest(
 		return nil, err
 	}
 	return item, nil
+}
+
+func onDeleteBookFromCollectionRequest(
+	app *pocketbase.PocketBase,
+	e *core.ServeEvent,
+	c echo.Context,
+) error {
+	item := &models.CollectionBook{}
+	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
+	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
+	if (admin == nil) && (record == nil) {
+		return unauthorizedError
+	}
+	item.CollectionId = c.PathParam("collectionId")
+	item.BookId = c.PathParam("bookId")
+	if err := item.Expand(app.Dao(), models.ExpandMap{
+		"collection": {},
+	}); err != nil {
+		return err
+	}
+	if item.Collection == nil {
+		return notFoundError
+	}
+	item.Book = &models.Book{}
+	item.Book.Id = item.BookId
+	if admin == nil {
+		canEditCollection, err := item.Collection.CanBeEditedBy(app.Dao(), record.Id)
+		if err != nil {
+			return err
+		}
+		if !canEditCollection {
+			canAccessCollection, err := item.Collection.CanBeAccessedBy(app.Dao(), record.Id)
+			if err != nil {
+				return err
+			}
+			if !canAccessCollection {
+				return notFoundError
+			}
+			return forbiddenError
+		}
+	}
+	existItem, err := fetchBookInCollection(app.Dao(), item.Collection, item.Book)
+	if err != nil {
+		return err
+	}
+	if existItem == nil {
+		return nil
+	}
+	if err = app.Dao().Delete(existItem); err != nil {
+		return err
+	}
+	return err
 }
 
 func booksInCollectionQuery(
