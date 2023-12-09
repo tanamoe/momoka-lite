@@ -1,15 +1,14 @@
 package apis
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"tana.moe/momoka-lite/models"
+	"tana.moe/momoka-lite/tools"
 )
 
 type response struct {
@@ -85,25 +84,13 @@ type deleteHandlerFunction func(
 	c echo.Context,
 ) (err error)
 
-func extractExpandMap(c echo.Context) (models.ExpandMap, error) {
-	expandJson := c.QueryParam("expand")
-	if expandJson == "" {
-		return nil, nil
-	}
-	expand := make(models.ExpandMap)
-	if err := json.NewDecoder(strings.NewReader(expandJson)).Decode(&expand); err != nil {
-		return nil, err
-	}
-	return expand, nil
-}
-
 func viewRouteHandler[T comparable](
 	app *pocketbase.PocketBase,
 	e *core.ServeEvent,
 	handler viewHandlerFunction[T],
 ) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		expand, err := extractExpandMap(c)
+		expand, err := tools.ExtractExpandMap(c)
 		if err != nil {
 			return handleError(app, e, c, errors.Join(err, invalidRequestError))
 		}
@@ -146,7 +133,7 @@ func listRouteHandler[T comparable](
 		if listQueryForm.PerPage > 150 {
 			listQueryForm.PerPage = 150
 		}
-		expand, err := extractExpandMap(c)
+		expand, err := tools.ExtractExpandMap(c)
 		if err != nil {
 			return handleError(app, e, c, errors.Join(err, invalidRequestError))
 		}
@@ -183,7 +170,7 @@ func upsertRouteHandler[T comparable](
 	handler upsertHandlerFunction[T],
 ) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		expand, err := extractExpandMap(c)
+		expand, err := tools.ExtractExpandMap(c)
 		if err != nil {
 			return handleError(app, e, c, errors.Join(err, invalidRequestError))
 		}
@@ -209,7 +196,7 @@ func bulkUpsertRouteHandler[T comparable](
 	handler bulkUpsertHandlerFunction[T],
 ) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		expand, err := extractExpandMap(c)
+		expand, err := tools.ExtractExpandMap(c)
 		if err != nil {
 			return handleError(app, e, c, errors.Join(err, invalidRequestError))
 		}
