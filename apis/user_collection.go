@@ -271,10 +271,13 @@ func onCollectionUpsertRequest(
 	if err := form.Submit(); err != nil {
 		return nil, errors.Join(invalidRequestError, err)
 	}
-	if err = item.Expand(app.Dao(), expand); err != nil {
+	if item, err = models.FindCollectionById(app.Dao(), r.Id); err != nil {
 		return nil, err
 	}
-	if item, err = models.FindCollectionById(app.Dao(), r.Id); err != nil {
+	if item == nil {
+		return nil, errors.New("Upserted collection is not suppose to be nil.")
+	}
+	if err = item.Expand(app.Dao(), expand); err != nil {
 		return nil, err
 	}
 	return item, nil
@@ -412,7 +415,7 @@ func onUpsertBookToCollectionRequest(
 		return nil, err
 	}
 	if item == nil {
-		return nil, errors.New("Upserted book to collection not supposed to be nil")
+		return nil, errors.New("Upserted book to collection not supposed to be nil.")
 	}
 	if err = item.Expand(app.Dao(), expand); err != nil {
 		return nil, err
