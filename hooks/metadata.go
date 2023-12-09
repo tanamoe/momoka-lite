@@ -13,7 +13,7 @@ func appendMetadata(m *models.Record, data map[string]interface{}) {
 		rawJson = types.JsonRaw{}
 	}
 	metadata := map[string]interface{}{}
-	if len(metadata) > 2 {
+	if len(rawJson.(types.JsonRaw)) > 2 {
 		if err := json.Unmarshal(rawJson.(types.JsonRaw), &metadata); err != nil {
 			panic(err)
 		}
