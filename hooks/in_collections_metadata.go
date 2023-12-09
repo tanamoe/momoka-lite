@@ -136,6 +136,9 @@ func booksWithBelongCollectionsMap(
 				),
 				dbx.HashExp{
 					fmt.Sprintf("%s.user", collectionMemberTable): user.Id,
+					fmt.Sprintf("%s.role", collectionMemberTable): []any{
+						models.CollectionEditorRole,
+					},
 				},
 			),
 		).
