@@ -229,7 +229,7 @@ func bulkUpsertRouteHandler[T comparable](
 	}
 }
 
-func deleteRouteHandler[T comparable](
+func deleteRouteHandler(
 	app *pocketbase.PocketBase,
 	e *core.ServeEvent,
 	handler deleteHandlerFunction,
