@@ -90,11 +90,17 @@ func fetchUserJoinedCollections(
 					collectionTableName,
 				),
 			),
+		).
+		Where(
+			dbx.HashExp{
+				fmt.Sprintf("%s.user", collectionMembersTableName): userId,
+			},
 		)
 	if publicOnly {
 		query = query.Where(
 			dbx.HashExp{
-				fmt.Sprintf("%s.visibility", collectionTableName): models.CollectionPublic,
+				fmt.Sprintf("%s.user", collectionMembersTableName): userId,
+				fmt.Sprintf("%s.visibility", collectionTableName):  models.CollectionPublic,
 			},
 		)
 	}
