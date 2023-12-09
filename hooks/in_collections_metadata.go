@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -12,6 +13,7 @@ import (
 	"github.com/pocketbase/pocketbase/daos"
 	pmodels "github.com/pocketbase/pocketbase/models"
 	"tana.moe/momoka-lite/models"
+	"tana.moe/momoka-lite/tools"
 )
 
 func registerAppendInCollectionsMetadataHook(
@@ -24,7 +26,13 @@ func registerAppendInCollectionsMetadataHook(
 		if user == nil {
 			return nil
 		}
-		return appendInCollectionsMetadata(app, context, user, [](*pmodels.Record){e.Record})
+		return appendInCollectionsMetadata(
+			app,
+			context,
+			e.HttpContext,
+			user,
+			[](*pmodels.Record){e.Record},
+		)
 	})
 
 	app.OnRecordsListRequest(targetCollections...).Add(func(e *core.RecordsListEvent) error {
@@ -32,7 +40,13 @@ func registerAppendInCollectionsMetadataHook(
 		if user == nil {
 			return nil
 		}
-		return appendInCollectionsMetadata(app, context, user, e.Records)
+		return appendInCollectionsMetadata(
+			app,
+			context,
+			e.HttpContext,
+			user,
+			e.Records,
+		)
 	})
 
 	return nil
@@ -41,9 +55,22 @@ func registerAppendInCollectionsMetadataHook(
 func appendInCollectionsMetadata(
 	app *pocketbase.PocketBase,
 	context *models.AppContext,
+	c echo.Context,
 	user *pmodels.Record,
 	records []*pmodels.Record,
 ) error {
+	expand, err := tools.ExtractExpandMap(c)
+	if err != nil {
+		return err
+	}
+	if _, exist := expand["metadata"]; exist {
+		expand = expand["metadata"]
+	} else {
+		expand = models.ExpandMap{}
+	}
+	if _, exist := expand["inCollections"]; exist {
+		expand = expand["inCollections"]
+	}
 	bookToCollectionsMap, err := booksWithBelongCollectionsMap(
 		app.Dao(),
 		user,
@@ -56,6 +83,11 @@ func appendInCollectionsMetadata(
 		collections, exist := bookToCollectionsMap[record.Id]
 		if !exist {
 			continue
+		}
+		for _, collection := range collections {
+			if err := collection.Expand(app.Dao(), expand); err != nil {
+				return err
+			}
 		}
 		appendMetadata(
 			record,
