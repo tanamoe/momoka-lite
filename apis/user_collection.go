@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"database/sql"
 	"errors"
 
 	"github.com/labstack/echo/v5"
@@ -36,6 +37,11 @@ func registerUserCollectionRoute(
 	core.Router.GET(
 		"/api/user-collection/:collectionId/books",
 		listRouteHandler(app, core, onRequestBooksInCollection),
+		apis.ActivityLogger(app),
+	)
+	core.Router.POST(
+		"/api/user-collection/:collectionId/books",
+		upsertRouteHandler(app, core, onUpsertBookToCollectionRequest),
 		apis.ActivityLogger(app),
 	)
 	core.Router.GET(
@@ -322,6 +328,93 @@ func onRequestMembersInCollection(
 	return items, page, perPage, totalItems, totalPages, nil
 }
 
+func onUpsertBookToCollectionRequest(
+	app *pocketbase.PocketBase,
+	e *core.ServeEvent,
+	c echo.Context,
+	expand models.ExpandMap,
+) (item *models.CollectionBook, err error) {
+	item = &models.CollectionBook{}
+	if err = c.Bind(&item); err != nil {
+		return nil, errors.Join(invalidRequestError, err)
+	}
+	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
+	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
+	if (admin == nil) && (record == nil) {
+		return nil, unauthorizedError
+	}
+	item.CollectionId = c.PathParam("collectionId")
+	if err := item.Expand(app.Dao(), models.ExpandMap{
+		"collection": {},
+		"book":       {},
+	}); err != nil {
+		return nil, err
+	}
+	if item.Collection == nil {
+		return nil, notFoundError
+	}
+	if item.Book == nil {
+		return nil, invalidRequestError
+	}
+	if admin == nil {
+		canEditCollection, err := item.Collection.CanBeEditedBy(app.Dao(), record.Id)
+		if err != nil {
+			return nil, err
+		}
+		if !canEditCollection {
+			canAccessCollection, err := item.Collection.CanBeAccessedBy(app.Dao(), record.Id)
+			if err != nil {
+				return nil, err
+			}
+			if !canAccessCollection {
+				return nil, notFoundError
+			}
+			return nil, forbiddenError
+		}
+	}
+	existItem, err := fetchBookInCollection(app.Dao(), item.Collection, item.Book)
+	if err != nil {
+		return nil, err
+	}
+	if existItem != nil {
+		item.Id = existItem.Id
+	}
+	collection, err := app.Dao().FindCollectionByNameOrId(
+		(&models.CollectionBook{}).TableName(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	r := pmodels.NewRecord(collection)
+	if item.Id != "" {
+		if r, err = app.Dao().FindRecordById((&models.CollectionBook{}).TableName(), item.Id); err != nil {
+			return nil, err
+		}
+	}
+	form := forms.NewRecordUpsert(app, r)
+	form.LoadData(map[string]any{
+		"collection": item.CollectionId,
+		"book":       item.BookId,
+		"quantity":   item.Quantity,
+		"status":     item.Status,
+		"notes":      item.Notes,
+	})
+	if err = form.Submit(); err != nil {
+		return nil, errors.Join(invalidRequestError, err)
+	}
+	item, err = models.FindCollectionBookById(app.Dao(), r.Id)
+	if err != nil {
+		return nil, err
+	}
+	if item == nil {
+		return nil, errors.New("Upserted book to collection not supposed to be nil")
+	}
+	if err = item.Expand(app.Dao(), expand); err != nil {
+		return nil, err
+	}
+	return item, nil
+}
+
 func booksInCollectionQuery(
 	dao *daos.Dao,
 	collection *models.Collection,
@@ -360,6 +453,27 @@ func countBooksInCollection(
 		Select("COUNT(id) AS count").
 		One(&result)
 	return result.Count, err
+}
+
+func fetchBookInCollection(
+	dao *daos.Dao,
+	collection *models.Collection,
+	book *models.Book,
+) (item *models.CollectionBook, err error) {
+	item = &models.CollectionBook{}
+	err = booksInCollectionQuery(dao, collection).
+		AndWhere(
+			dbx.HashExp{
+				"collection": collection.Id,
+				"book":       book.Id,
+			},
+		).
+		One(&item)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return
+
 }
 
 func membersInCollectionQuery(
