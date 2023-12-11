@@ -17,6 +17,9 @@ func appendMetadata(m *models.Record, data map[string]interface{}) {
 		if err := json.Unmarshal(rawJson.(types.JsonRaw), &metadata); err != nil {
 			panic(err)
 		}
+		if metadata == nil {
+			metadata = map[string]interface{}{}
+		}
 	}
 	for key, value := range data {
 		metadata[key] = value
