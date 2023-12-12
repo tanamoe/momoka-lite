@@ -64,7 +64,12 @@ func (m *Collection) Expand(dao *daos.Dao, e ExpandMap) error {
 		if err != nil {
 			return err
 		}
-		m.Owner = owner
+		if owner != nil {
+			if err := owner.Expand(dao, e["owner"]); err != nil {
+				return err
+			}
+			m.Owner = owner
+		}
 	}
 
 	return nil

@@ -14,7 +14,7 @@ var _ models.Model = (*Publication)(nil)
 type Publication struct {
 	models.BaseModel
 
-	ReleaseID string                  `db:"release" json:"release"`
+	ReleaseID string                  `db:"release" json:"releaseId"`
 	Name      string                  `db:"name" json:"name"`
 	Volume    int                     `db:"volume" json:"volume"`
 	Covers    types.JsonArray[string] `db:"covers" json:"covers"`
