@@ -29,5 +29,9 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerUpdateTitleSlugHook(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }
