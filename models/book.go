@@ -59,7 +59,12 @@ func (m *Book) Expand(dao *daos.Dao, e ExpandMap) error {
 		if err != nil {
 			return err
 		}
-		m.Publication = publication
+		if publication != nil {
+			if err := publication.Expand(dao, e["publication"]); err != nil {
+				return err
+			}
+			m.Publication = publication
+		}
 	}
 
 	return nil
