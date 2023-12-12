@@ -13,6 +13,7 @@ import (
 	"tana.moe/momoka-lite/hooks"
 	_ "tana.moe/momoka-lite/migrations"
 	"tana.moe/momoka-lite/models"
+	"tana.moe/momoka-lite/services"
 )
 
 func main() {
@@ -41,6 +42,11 @@ func main() {
 	}
 
 	if err := hooks.RegisterHooks(app, context); err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	if err := services.Start(); err != nil {
 		log.Fatal(err)
 		return
 	}

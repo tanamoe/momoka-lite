@@ -218,7 +218,7 @@ func init() {
 				"schema": [
 					{
 						"system": false,
-						"id": "tlb30fgj",
+						"id": "cqxzavfw",
 						"name": "slugGroup",
 						"type": "text",
 						"required": false,
@@ -346,7 +346,7 @@ func init() {
 					}
 				],
 				"indexes": [
-					"CREATE INDEX ` + "`" + `idx_05tXG2O` + "`" + ` ON ` + "`" + `titles` + "`" + ` (` + "`" + `slugGroup` + "`" + `)",
+					"CREATE INDEX ` + "`" + `idx_gFgrqNg` + "`" + ` ON ` + "`" + `titles` + "`" + ` (` + "`" + `slugGroup` + "`" + `)",
 					"CREATE INDEX ` + "`" + `idx_05tXG2O` + "`" + ` ON ` + "`" + `titles` + "`" + ` (` + "`" + `slug` + "`" + `)"
 				],
 				"listRule": "",
