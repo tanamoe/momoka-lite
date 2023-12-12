@@ -58,7 +58,8 @@ func init() {
 					return
 				}
 				for _, title := range titles {
-					title.Slug = slug.Make(title.Name)
+					title.SlugGroup = slug.Make(title.Name)
+					title.Slug = title.SlugGroup
 					if err := dao.Save(title); err != nil {
 						errChans[i] <- err
 						return

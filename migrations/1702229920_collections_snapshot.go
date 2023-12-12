@@ -219,6 +219,20 @@ func init() {
 					{
 						"system": false,
 						"id": "tlb30fgj",
+						"name": "slugGroup",
+						"type": "text",
+						"required": false,
+						"presentable": false,
+						"unique": false,
+						"options": {
+							"min": null,
+							"max": null,
+							"pattern": ""
+						}
+					},
+					{
+						"system": false,
+						"id": "tlb30fgj",
 						"name": "slug",
 						"type": "text",
 						"required": false,
@@ -332,6 +346,7 @@ func init() {
 					}
 				],
 				"indexes": [
+					"CREATE INDEX ` + "`" + `idx_05tXG2O` + "`" + ` ON ` + "`" + `titles` + "`" + ` (` + "`" + `slugGroup` + "`" + `)",
 					"CREATE INDEX ` + "`" + `idx_05tXG2O` + "`" + ` ON ` + "`" + `titles` + "`" + ` (` + "`" + `slug` + "`" + `)"
 				],
 				"listRule": "",
