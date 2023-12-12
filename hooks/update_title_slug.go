@@ -32,20 +32,19 @@ func updateTitleSlug(
 	e *core.ModelEvent,
 ) error {
 	titleId := e.Model.GetId()
-	title, err := models.FindTitleById(app.Dao(), titleId)
+	title, err := models.FindTitleById(e.Dao, titleId)
 	if err != nil {
 		return err
 	}
 	if title.SlugGroup == "" {
 		title.SlugGroup = slug.Make(title.Name)
 		title.Slug = title.SlugGroup
-		if err := app.Dao().Save(title); err != nil {
+		if err := e.Dao.WithoutHooks().Save(title); err != nil {
 			return err
 		}
 	}
-
 	if err := services.UpdateTitleSlug(
-		app.Dao().WithoutHooks(),
+		e.Dao.WithoutHooks(),
 		title.SlugGroup,
 	); err != nil {
 		return err

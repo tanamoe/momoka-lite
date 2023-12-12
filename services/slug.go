@@ -74,7 +74,7 @@ func resolveUpdateTitleSlugSignal(dao *daos.Dao, slugGroup string) error {
 			if err := dao.Save(titles[0]); err != nil {
 				return err
 			}
-			return nil
+			continue
 		}
 
 		for _, title := range titles {
