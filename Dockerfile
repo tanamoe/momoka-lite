@@ -1,4 +1,4 @@
-ARG  BUN_IMAGE=oven/bun:1.0.17
+ARG  BUN_IMAGE=oven/bun:1.0.17-debian
 ARG  BUILDER_IMAGE=golang:1.21-rc-alpine3.18
 ARG  DISTROLESS_IMAGE=gcr.io/distroless/static
 
@@ -10,6 +10,10 @@ FROM ${BUN_IMAGE} as docs-builder
 WORKDIR /build/docs/
 
 COPY ./docs/ .
+
+# Install node since vitepress require esbuild
+RUN apt update
+RUN apt install nodejs -y
 
 RUN bun install --frozen-lockfile
 
