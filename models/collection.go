@@ -132,6 +132,13 @@ func (m *Collection) CanBeEditedBy(dao *daos.Dao, userId string) (bool, error) {
 	return m.userHadRole(dao, userId, CollectionEditorRole)
 }
 
+func (m *Collection) HadMember(dao *daos.Dao, userId string) (bool, error) {
+	if m.OwnerId == userId {
+		return true, nil
+	}
+	return m.userHadRole(dao, userId, CollectionMemberRole, CollectionEditorRole)
+}
+
 func (m *Collection) AddMember(dao *daos.Dao, userId string, role CollectionAccessRole) error {
 	member := &CollectionMember{
 		CollectionId: m.Id,
