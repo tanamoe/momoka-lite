@@ -34,6 +34,11 @@ func registerUserCollectionRoute(
 		upsertRouteHandler(app, core, onCollectionUpsertRequest),
 		apis.ActivityLogger(app),
 	)
+	core.Router.DELETE(
+		"/api/user-collection/:collectionId",
+		deleteRouteHandler(app, core, onDeleteCollectionRequest),
+		apis.ActivityLogger(app),
+	)
 	core.Router.GET(
 		"/api/user-collection/:collectionId/books",
 		listRouteHandler(app, core, onRequestBooksInCollection),
@@ -281,6 +286,63 @@ func onCollectionUpsertRequest(
 		return nil, err
 	}
 	return item, nil
+}
+
+func onDeleteCollectionRequest(
+	app *pocketbase.PocketBase,
+	e *core.ServeEvent,
+	c echo.Context,
+) error {
+	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
+	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
+	if (admin == nil) && (record == nil) {
+		return unauthorizedError
+	}
+	collectionId := c.PathParam("collectionId")
+	collection, err := models.FindCollectionById(app.Dao(), collectionId)
+	if err != nil {
+		return err
+	}
+	if collection == nil {
+		return notFoundError
+	}
+	if admin == nil {
+		if collection.OwnerId != record.Id {
+			canAccessCollection, err := collection.CanBeAccessedBy(app.Dao(), record.Id)
+			if err != nil {
+				return err
+			}
+			if !canAccessCollection {
+				return notFoundError
+			}
+			return forbiddenError
+		}
+	}
+	return app.Dao().WithoutHooks().RunInTransaction(func(dao *daos.Dao) error {
+		members := []*models.CollectionMember{}
+		err := models.CollectionMemberQuery(dao).
+			AndWhere(
+				dbx.HashExp{
+					"collection": collection.Id,
+				},
+			).
+			All(&members)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil
+		}
+		if err != nil {
+			return err
+		}
+		for _, member := range members {
+			if err := dao.Delete(member); err != nil {
+				return err
+			}
+		}
+		if err = dao.Delete(collection); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func onRequestMembersInCollection(
