@@ -38,7 +38,7 @@ func init() {
 			return err
 		}
 		var errChans [](chan error)
-		pageSize := int64(25)
+		pageSize := int64(100)
 		for offset := int64(0); offset < count.Count; offset += pageSize {
 			currentOffset := offset
 			i := len(errChans)
