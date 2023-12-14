@@ -198,12 +198,15 @@ func onCollectionUpsertRequest(
 		if err != nil {
 			return nil, err
 		}
-		canAccessCollection, err := item.CanBeAccessedBy(app.Dao(), record.Id)
-		if err != nil {
-			return nil, err
-		}
 		if !canEditCollection {
-			if !canAccessCollection {
+			if item.Visibility == models.CollectionPublic {
+				return nil, forbiddenError
+			}
+			isMember, err := item.HadMember(app.Dao(), record.Id)
+			if err != nil {
+				return nil, err
+			}
+			if !isMember {
 				return nil, notFoundError
 			}
 			return nil, forbiddenError
@@ -432,11 +435,14 @@ func onUpsertBookToCollectionRequest(
 			return nil, err
 		}
 		if !canEditCollection {
-			canAccessCollection, err := item.Collection.CanBeAccessedBy(app.Dao(), record.Id)
+			if item.Collection.Visibility == models.CollectionPublic {
+				return nil, forbiddenError
+			}
+			isMember, err := item.Collection.HadMember(app.Dao(), record.Id)
 			if err != nil {
 				return nil, err
 			}
-			if !canAccessCollection {
+			if !isMember {
 				return nil, notFoundError
 			}
 			return nil, forbiddenError
@@ -514,11 +520,14 @@ func onDeleteBookFromCollectionRequest(
 			return err
 		}
 		if !canEditCollection {
-			canAccessCollection, err := item.Collection.CanBeAccessedBy(app.Dao(), record.Id)
+			if item.Collection.Visibility == models.CollectionPublic {
+				return forbiddenError
+			}
+			isMember, err := item.Collection.HadMember(app.Dao(), record.Id)
 			if err != nil {
 				return err
 			}
-			if !canAccessCollection {
+			if !isMember {
 				return notFoundError
 			}
 			return forbiddenError
