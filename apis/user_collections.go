@@ -117,11 +117,12 @@ func fetchCommonJoinedCollections(
 	collectionMembersTableName := (&models.CollectionMember{}).TableName()
 
 	weightColumn := fmt.Sprintf(
-		"(CASE WHEN %s.visibility='%s' THEN 3 "+
-			"WHEN %s.user='%s' THEN 2 "+
+		"(CASE WHEN %s.user='%s' THEN 2 "+
+			"WHEN %s.visibility='%s' THEN 3 "+
 			"ELSE 1 END) "+
 			"AS weight",
-		collectionTableName, models.CollectionPublic, collectionMembersTableName, tools.EscapeSql(viewerId),
+		collectionMembersTableName, tools.EscapeSql(viewerId),
+		collectionTableName, models.CollectionPublic,
 	)
 	scoreColumn := "SUM(weight)"
 	minScore := 3
