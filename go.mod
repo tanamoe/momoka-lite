@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/gosimple/slug v1.13.1
 	github.com/joho/godotenv v1.5.1
-	github.com/labstack/echo/v5 v5.0.0-20230722203903-ec5b858dab61
+	github.com/labstack/echo/v5 60fc2fb1b76f
 	github.com/pocketbase/dbx v1.10.1
 	github.com/pocketbase/pocketbase v0.20.0
 	go.uber.org/zap v1.26.0
