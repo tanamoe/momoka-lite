@@ -1,15 +1,13 @@
 package hooks
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/models"
 	"tana.moe/momoka-lite/models"
+	"tana.moe/momoka-lite/tools"
 )
 
 const (
@@ -139,18 +137,11 @@ func appendImageSizeMetadata(secret string, record *m.Record) error {
 
 func getImageSizes(secret string, path string) map[string]string {
 	return map[string]string{
-		"160w":  signImageUrl(secret, fmt.Sprintf("120x0/filters:quality(90)/%s", path)),
-		"320w":  signImageUrl(secret, fmt.Sprintf("320x0/filters:quality(90)/%s", path)),
-		"480w":  signImageUrl(secret, fmt.Sprintf("480x0/filters:quality(90)/%s", path)),
-		"640w":  signImageUrl(secret, fmt.Sprintf("640x0/filters:quality(90)/%s", path)),
-		"1280w": signImageUrl(secret, fmt.Sprintf("1280x0/filters:quality(90)/%s", path)),
-		"1920w": signImageUrl(secret, fmt.Sprintf("1920x0/filters:quality(90)/%s", path)),
+		"160w":  tools.SignImageUrl(secret, fmt.Sprintf("120x0/filters:quality(90)/%s", path)),
+		"320w":  tools.SignImageUrl(secret, fmt.Sprintf("320x0/filters:quality(90)/%s", path)),
+		"480w":  tools.SignImageUrl(secret, fmt.Sprintf("480x0/filters:quality(90)/%s", path)),
+		"640w":  tools.SignImageUrl(secret, fmt.Sprintf("640x0/filters:quality(90)/%s", path)),
+		"1280w": tools.SignImageUrl(secret, fmt.Sprintf("1280x0/filters:quality(90)/%s", path)),
+		"1920w": tools.SignImageUrl(secret, fmt.Sprintf("1920x0/filters:quality(90)/%s", path)),
 	}
-}
-
-func signImageUrl(secret string, path string) string {
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte(path))
-	sign := base64.URLEncoding.EncodeToString(mac.Sum(nil))[:40]
-	return fmt.Sprintf("%s/%s", sign, path)
 }
