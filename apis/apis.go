@@ -15,5 +15,8 @@ func RegisterApis(app *pocketbase.PocketBase, e *core.ServeEvent) error {
 	if err := registerUserCollectionRoute(app, e); err != nil {
 		return err
 	}
+	if err := registerResizeImagesRoute(app, e); err != nil {
+		return err
+	}
 	return nil
 }
