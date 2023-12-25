@@ -98,11 +98,8 @@ func startServices(
 	app *pocketbase.PocketBase,
 	context *models.AppContext,
 ) error {
-	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		if err := services.Start(app, context); err != nil {
-			return err
-		}
-		return nil
-	})
+	if err := services.Start(app, context); err != nil {
+		return err
+	}
 	return nil
 }
