@@ -46,7 +46,7 @@ func main() {
 		return
 	}
 
-	if err := services.Start(); err != nil {
+	if err := startServices(app, context); err != nil {
 		log.Fatal(err)
 		return
 	}
@@ -92,4 +92,17 @@ func appendAppContext(context *models.AppContext) echo.MiddlewareFunc {
 			})
 		}
 	}
+}
+
+func startServices(
+	app *pocketbase.PocketBase,
+	context *models.AppContext,
+) error {
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		if err := services.Start(app, context); err != nil {
+			return err
+		}
+		return nil
+	})
+	return nil
 }

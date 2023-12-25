@@ -1,7 +1,12 @@
 package services
 
-func Start() error {
-	if err := startUpdateSlugService(); err != nil {
+import (
+	"github.com/pocketbase/pocketbase"
+	"tana.moe/momoka-lite/models"
+)
+
+func Start(app *pocketbase.PocketBase, context *models.AppContext) error {
+	if err := startUpdateSlugService(app, context); err != nil {
 		return err
 	}
 	return nil
