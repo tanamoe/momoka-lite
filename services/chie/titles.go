@@ -90,17 +90,19 @@ func indexTitleCollection(app *pocketbase.PocketBase, context *models.AppContext
 
 func startTitleSearchService(app *pocketbase.PocketBase, context *models.AppContext) error {
 	go func() {
-		select {
-		case signal := <-titleSearchChannel:
-			count, items, err := searchForTitles(signal.Query)
-			signal.Result <- TitleSearchResponse{
-				TotalItems: count,
-				Items:      items,
-				Error:      err,
-			}
+		for {
+			select {
+			case signal := <-titleSearchChannel:
+				count, items, err := searchForTitles(signal.Query)
+				signal.Result <- TitleSearchResponse{
+					TotalItems: count,
+					Items:      items,
+					Error:      err,
+				}
 
-		case signal := <-titleUpdateChannel:
-			signal.Err <- updateTitleIndex(signal.Dao, signal.Title)
+			case signal := <-titleUpdateChannel:
+				signal.Err <- updateTitleIndex(signal.Dao, signal.Title)
+			}
 		}
 	}()
 	return nil
