@@ -237,7 +237,6 @@ func assignStaffsToTitles(dao *daos.Dao, titles []*titleIndex) error {
 
 	type StaffAndTitle struct {
 		TitleId   string `db:"title"`
-		StaffId   string `db:"staffId"`
 		StaffName string `db:"staffName"`
 	}
 	staffAndTitleMap := []*StaffAndTitle{}
@@ -258,7 +257,7 @@ func assignStaffsToTitles(dao *daos.Dao, titles []*titleIndex) error {
 		).
 		Where(
 			dbx.HashExp{
-				fmt.Sprintf("%s.id", worksTableName): titleIds,
+				fmt.Sprintf("%s.title", worksTableName): titleIds,
 			},
 		).
 		All(&staffAndTitleMap)
