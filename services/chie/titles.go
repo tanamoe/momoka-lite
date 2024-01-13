@@ -21,6 +21,14 @@ type TitleSearchRequest struct {
 	Demographic QueryGroup[string] `json:"demographic"`
 	Genres      QueryGroup[string] `json:"genres"`
 	Staffs      QueryGroup[string] `json:"staffs"`
+	Limit       int                `json:"limit"`
+	Offset      int                `json:"offset"`
+}
+
+type TitleSearchResponse struct {
+	TotalItems int      `json:"totalItems"`
+	Items      []string `json:"items"`
+	Error      error    `json:"-"`
 }
 
 type titleIndex struct {
@@ -34,13 +42,19 @@ type titleIndex struct {
 }
 
 type titleSearchSignal struct {
+	Query  TitleSearchRequest
+	Result chan TitleSearchResponse
+}
+
+type titleUpdateSignal struct {
 	Dao   *daos.Dao
-	Query TitleSearchRequest
+	Title *models.Title
 	Err   chan error
 }
 
 var (
 	titleSearchChannel = make(chan titleSearchSignal)
+	titleUpdateChannel = make(chan titleUpdateSignal)
 	titleIndexMapping  bleve.Index
 )
 
@@ -70,6 +84,55 @@ func indexTitleCollection(app *pocketbase.PocketBase, context *models.AppContext
 	}
 }
 
+func startTitleSearchService(app *pocketbase.PocketBase, context *models.AppContext) error {
+	go func() {
+		select {
+		case signal := <-titleSearchChannel:
+			count, items, err := searchForTitles(signal.Query)
+			signal.Result <- TitleSearchResponse{
+				TotalItems: count,
+				Items:      items,
+				Error:      err,
+			}
+
+		case signal := <-titleUpdateChannel:
+			signal.Err <- updateTitleIndex(signal.Dao, signal.Title)
+		}
+	}()
+	return nil
+}
+
+func searchForTitles(req TitleSearchRequest) (int, []string, error) {
+	return 0, nil, nil
+}
+
+func updateTitleIndex(dao *daos.Dao, title *models.Title) error {
+	titleIdx := &titleIndex{}
+	err := models.
+		TitleQuery(dao).
+		Where(
+			dbx.HashExp{
+				"id": title.Id,
+			},
+		).
+		One(titleIdx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	titles, err := normalizeTitlesList(dao, []*titleIndex{titleIdx})
+	if err != nil {
+		return err
+	}
+	titleIdx = titles[0]
+	if err := titleIndexMapping.Index(titleIdx.Id, titleIdx); err != nil {
+		return err
+	}
+	return nil
+}
+
 func fetchTitlesList(dao *daos.Dao, offset int64, limit int64) (titles []*titleIndex, err error) {
 	err = models.TitleQuery(dao).Offset(offset).Limit(limit).All(&titles)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -78,6 +141,11 @@ func fetchTitlesList(dao *daos.Dao, offset int64, limit int64) (titles []*titleI
 	if err != nil {
 		return nil, err
 	}
+	titles, err = normalizeTitlesList(dao, titles)
+	return
+}
+
+func normalizeTitlesList(dao *daos.Dao, titles []*titleIndex) ([]*titleIndex, error) {
 	if err := assignStaffsToTitles(dao, titles); err != nil {
 		return nil, err
 	}
@@ -86,7 +154,7 @@ func fetchTitlesList(dao *daos.Dao, offset int64, limit int64) (titles []*titleI
 			return nil, err
 		}
 	}
-	return
+	return titles, nil
 }
 
 func assignStaffsToTitles(dao *daos.Dao, titles []*titleIndex) error {
