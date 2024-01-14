@@ -189,6 +189,7 @@ func updateTitleIndex(dao *daos.Dao, title *models.Title) error {
 		).
 		One(titleIdx)
 	if errors.Is(err, sql.ErrNoRows) {
+		_ = titleIndexMapping.Delete(title.Id)
 		return nil
 	}
 	if err != nil {
