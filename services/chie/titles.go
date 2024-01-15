@@ -150,7 +150,6 @@ func searchForTitles(req TitleSearchRequest) (int, []string, error) {
 		for _, staff := range req.Staffs.Values {
 			staffsQuery.Values = append(staffsQuery.Values, normalizeTitleStaffName(staff))
 		}
-		fmt.Printf("%s\n", staffsQuery)
 		queries = append(queries, groupMatchQuery[string](staffsQuery, "staffs"))
 	}
 	searchQuery := query.NewConjunctionQuery(queries)
