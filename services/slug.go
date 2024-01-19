@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/daos"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/tools"
@@ -19,7 +20,7 @@ type slugUpdateSignal struct {
 
 var slugUpdateChannel = make(chan slugUpdateSignal)
 
-func startUpdateSlugService() error {
+func startUpdateSlugService(app *pocketbase.PocketBase, context *models.AppContext) error {
 	go func() {
 		for {
 			signal := <-slugUpdateChannel

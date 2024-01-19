@@ -33,5 +33,9 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerOnTitleIndexShouldChangeHook(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }

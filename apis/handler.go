@@ -3,6 +3,7 @@ package apis
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
@@ -120,9 +121,27 @@ func listRouteHandler[T comparable](
 		PerPage int  `query:"perPage"`
 	}
 	return func(c echo.Context) error {
-		listQueryForm := &listQuery{}
-		if err := c.Bind(listQueryForm); err != nil {
-			return handleError(app, e, c, errors.Join(err, invalidRequestError))
+		rPage := c.QueryParam("page")
+		qPage, err := strconv.Atoi(rPage)
+		if err != nil {
+			if rPage != "" {
+				return handleError(app, e, c, errors.Join(err, invalidRequestError))
+			} else {
+				qPage = 0
+			}
+		}
+		rPerPage := c.QueryParam("perPage")
+		qPerPage, err := strconv.Atoi(rPerPage)
+		if err != nil {
+			if rPerPage != "" {
+				return handleError(app, e, c, errors.Join(err, invalidRequestError))
+			} else {
+				qPerPage = 0
+			}
+		}
+		listQueryForm := &listQuery{
+			Page:    uint(qPage),
+			PerPage: qPerPage,
 		}
 		if listQueryForm.Page <= 0 {
 			listQueryForm.Page = 1
