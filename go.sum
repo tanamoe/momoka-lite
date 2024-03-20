@@ -223,6 +223,7 @@ github.com/bits-and-blooms/bitset v1.2.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edY
 github.com/blevesearch/bleve v1.0.14 h1:Q8r+fHTt35jtGXJUM0ULwM3Tzg+MRfyai4ZkWDy2xO4=
 github.com/blevesearch/bleve v1.0.14/go.mod h1:e/LJTr+E7EaoVdkQZTfoz7dt4KoDNvDbLb8MSKuNTLQ=
 github.com/blevesearch/bleve/v2 v2.3.10/go.mod h1:RJzeoeHC+vNHsoLR54+crS1HmOWpnH87fL70HAUCzIA=
+github.com/blevesearch/bleve/v2 v2.4.0/go.mod h1:IhQHoFAbHgWKYavb9rQgQEJJVMuY99cKdQ0wPpst2aY=
 github.com/blevesearch/blevex v1.0.0/go.mod h1:2rNVqoG2BZI8t1/P1awgTKnGlx5MP9ZbtEciQaNhswc=
 github.com/blevesearch/cld2 v0.0.0-20200327141045-8b5f551d37f5/go.mod h1:PN0QNTLs9+j1bKy3d/GB/59wsNBFC4sWLWG3k69lWbc=
 github.com/blevesearch/go-porterstemmer v1.0.3 h1:GtmsqID0aZdCSNiY8SkuPJ12pD4jI+DdXTAn4YRcHCo=
