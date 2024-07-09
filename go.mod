@@ -3,7 +3,7 @@ module tana.moe/momoka-lite
 go 1.21
 
 require (
-	github.com/blevesearch/bleve v1.0.14
+	github.com/blevesearch/bleve/v2 v2.4.1
 	github.com/blevesearch/bleve/v2 v2.4.1
 	github.com/gosimple/slug v1.14.0
 	github.com/joho/godotenv v1.5.1
