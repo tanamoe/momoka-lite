@@ -29,6 +29,7 @@ type Release struct {
 	Title          *Title        `db:"-" json:"title,omitempty"`
 	Name           string        `db:"name" json:"name"`
 	Type           string        `db:"type" json:"type"`
+	Digital        bool          `db:"digital" json:"digital"`
 	Disambiguation string        `db:"disambiguation" json:"disambiguation"`
 	PublisherId    string        `db:"publisher" json:"publisherId"`
 	Publisher      *Publisher    `db:"-" json:"publisher,omitempty"`

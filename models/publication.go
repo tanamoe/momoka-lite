@@ -18,7 +18,6 @@ type Publication struct {
 	Name      string                  `db:"name" json:"name"`
 	Volume    int                     `db:"volume" json:"volume"`
 	Covers    types.JsonArray[string] `db:"covers" json:"covers"`
-	Digital   bool                    `db:"digital" json:"digital"`
 	Metadata  types.JsonMap           `db:"metadata" json:"metadata"`
 }
 
