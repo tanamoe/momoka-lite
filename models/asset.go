@@ -6,6 +6,7 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/models"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 var _ models.Model = (*Asset)(nil)
@@ -13,11 +14,13 @@ var _ models.Model = (*Asset)(nil)
 type Asset struct {
 	models.BaseModel
 
-	Image  string     `db:"image" json:"image"`
-	BookId string     `db:"book" json:"bookId"`
-	Book   *Book      `db:"-" json:"book,omitempty"`
-	TypeId string     `db:"type" json:"typeId"`
-	Type   *AssetType `db:"-" json:"type,omitempty"`
+	BookId       string        `db:"book" json:"bookId"`
+	Book         *Book         `db:"-" json:"book,omitempty"`
+	TypeId       string        `db:"type" json:"typeId"`
+	Type         *AssetType    `db:"-" json:"type,omitempty"`
+	Image        string        `db:"image" json:"image"`
+	ResizedImage types.JsonMap `db:"resizedImage" json:"resizedImage"`
+	Priority     int           `db:"priority" json:"priority"`
 }
 
 func (m *Asset) TableName() string {

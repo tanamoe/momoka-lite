@@ -10,6 +10,8 @@ import (
 
 var _ models.Model = (*AssetType)(nil)
 
+const assetTypeCoverID = "0000000000cover"
+
 type AssetType struct {
 	models.BaseModel
 
@@ -17,7 +19,7 @@ type AssetType struct {
 }
 
 func (m *AssetType) TableName() string {
-	return "assetType"
+	return "assetTypes"
 }
 
 func AssetTypeQuery(dao *daos.Dao) *dbx.SelectQuery {
