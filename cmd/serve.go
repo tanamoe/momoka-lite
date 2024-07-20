@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -14,6 +16,7 @@ import (
 	_ "tana.moe/momoka-lite/migrations"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/services"
+	"tana.moe/momoka-lite/tools"
 )
 
 func main() {
@@ -53,6 +56,13 @@ func main() {
 
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
 		Automigrate: false,
+	})
+
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		if err := refreshAppState(app, context); err != nil {
+			panic(err)
+		}
+		return nil
 	})
 
 	if err := app.Start(); err != nil {
@@ -102,4 +112,40 @@ func startServices(
 		return err
 	}
 	return nil
+}
+
+func refreshAppState(
+	app *pocketbase.PocketBase,
+	context *models.AppContext,
+) error {
+	dao := app.Dao()
+	states := map[string]string{
+		models.ImagorSecretStateId: imagorSecretState(context),
+	}
+	for id, stateValue := range states {
+		state, err := models.FindStateById(dao, id)
+		if err != nil {
+			return err
+		}
+		if state == nil {
+			return errors.New(fmt.Sprintf("Unable to locate state `%s`", id))
+		}
+		if state.Value == stateValue {
+			continue
+		}
+		state.Value = stateValue
+		if err := dao.Save(state); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func imagorSecretState(
+	context *models.AppContext,
+) string {
+	if context.ImagorSecret == "" {
+		return ""
+	}
+	return tools.SHA256(context.ImagorSecret)
 }

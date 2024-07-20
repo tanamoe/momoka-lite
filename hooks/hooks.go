@@ -37,5 +37,9 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerResizeAssetImageHook(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }
