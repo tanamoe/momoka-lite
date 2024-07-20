@@ -120,7 +120,8 @@ func refreshAppState(
 ) error {
 	dao := app.Dao()
 	states := map[string]string{
-		models.ImagorSecretStateId: imagorSecretState(context),
+		models.ImagorSecretStateId:      imagorSecretState(context),
+		models.AssetImageResizedStateId: "1",
 	}
 	for id, stateValue := range states {
 		state, err := models.FindStateById(dao, id)
