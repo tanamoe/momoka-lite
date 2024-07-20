@@ -10,7 +10,7 @@ import (
 
 var _ models.Model = (*AssetType)(nil)
 
-const assetTypeCoverID = "0000000000cover"
+const AssetTypeCoverID = "0000000000cover"
 
 type AssetType struct {
 	models.BaseModel
