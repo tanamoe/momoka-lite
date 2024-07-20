@@ -23,7 +23,11 @@ func registerResizeAssetImageHook(
 		return resizeAssetImage(app, context, e.Model.GetId())
 	})
 	app.OnModelAfterUpdate((&models.State{}).TableName()).Add(func(e *core.ModelEvent) error {
-		if e.Model.GetId() != models.ImagorSecretStateId {
+		targetStateIds := map[string]bool{
+			models.ImagorSecretStateId:      true,
+			models.AssetImageResizedStateId: true,
+		}
+		if _, exist := targetStateIds[e.Model.GetId()]; !exist {
 			return nil
 		}
 		assets := []*models.Asset{}

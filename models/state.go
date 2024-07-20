@@ -10,7 +10,10 @@ import (
 
 var _ models.Model = (*State)(nil)
 
-const ImagorSecretStateId = "000ImagorSecret"
+const (
+	ImagorSecretStateId      = "000ImagorSecret"
+	AssetImageResizedStateId = "000AssetResized"
+)
 
 type State struct {
 	models.BaseModel
