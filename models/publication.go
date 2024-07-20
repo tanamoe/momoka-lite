@@ -14,11 +14,14 @@ var _ models.Model = (*Publication)(nil)
 type Publication struct {
 	models.BaseModel
 
-	ReleaseID string                  `db:"release" json:"releaseId"`
-	Name      string                  `db:"name" json:"name"`
-	Volume    int                     `db:"volume" json:"volume"`
-	Covers    types.JsonArray[string] `db:"covers" json:"covers"`
-	Metadata  types.JsonMap           `db:"metadata" json:"metadata"`
+	ReleaseId     string                  `db:"release" json:"releaseId"`
+	Release       *Release                `db:"-" json:"release,omitempty"`
+	Name          string                  `db:"name" json:"name"`
+	Volume        int                     `db:"volume" json:"volume"`
+	DefaultBookId string                  `db:"defaultBook" json:"defaultBookId"`
+	DefaultBook   *Book                   `db:"-" json:"defaultBook,omitempty"`
+	Covers        types.JsonArray[string] `db:"covers" json:"covers"`
+	Metadata      types.JsonMap           `db:"-" json:"-"`
 }
 
 func (m *Publication) TableName() string {
@@ -45,5 +48,35 @@ func FindPublicationById(dao *daos.Dao, id string) (*Publication, error) {
 }
 
 func (m *Publication) Expand(dao *daos.Dao, e ExpandMap) error {
+	if e == nil {
+		return nil
+	}
+
+	if _, exist := e["release"]; exist {
+		release, err := FindReleaseById(dao, m.ReleaseId)
+		if err != nil {
+			return err
+		}
+		if release != nil {
+			if err := release.Expand(dao, e["release"]); err != nil {
+				return err
+			}
+			m.Release = release
+		}
+	}
+
+	if _, exist := e["defaultBook"]; exist {
+		book, err := FindBookById(dao, m.DefaultBookId)
+		if err != nil {
+			return err
+		}
+		if book != nil {
+			if err := book.Expand(dao, e["defaultBook"]); err != nil {
+				return err
+			}
+			m.DefaultBook = book
+		}
+	}
+
 	return nil
 }
