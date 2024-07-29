@@ -41,5 +41,9 @@ func RegisterHooks(
 		return err
 	}
 
+	if err := registerPublicationUpdateDefaultBook(app, context); err != nil {
+		return err
+	}
+
 	return nil
 }
