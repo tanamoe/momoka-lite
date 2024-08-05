@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"errors"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/daos"
