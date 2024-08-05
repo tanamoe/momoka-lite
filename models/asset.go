@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/daos"
@@ -39,36 +40,6 @@ func FindAssetById(dao *daos.Dao, id string) (*Asset, error) {
 		One(asset)
 	if err == sql.ErrNoRows {
 		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return asset, nil
-}
-
-func FindBookDefaultAsset(dao *daos.Dao, bookId string, publicationId string) (*Asset, error) {
-	asset := &Asset{}
-	err := AssetQuery(dao).
-		AndWhere(dbx.HashExp{
-			"book": bookId,
-			"type": AssetTypeCoverID,
-		}).
-		OrderBy("priority ASC").
-		Limit(1).
-		One(asset)
-	if err == sql.ErrNoRows {
-		publication, err := FindPublicationById(dao, publicationId)
-		if err != nil {
-			return nil, err
-		}
-		// defaultBook unset
-		if publication.DefaultBookId == "" {
-			return nil, nil
-		}
-		if bookId == publication.DefaultBookId {
-			return nil, nil
-		}
-		return FindBookDefaultAsset(dao, publication.DefaultBookId, publicationId)
 	}
 	if err != nil {
 		return nil, err

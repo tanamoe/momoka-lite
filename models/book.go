@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/daos"
@@ -48,6 +49,58 @@ func FindBookById(dao *daos.Dao, id string) (*Book, error) {
 	return book, nil
 }
 
+func (m *Book) GetRoot(dao *daos.Dao) (*Book, error) {
+	publication, err := FindPublicationById(dao, m.PublicationID)
+	if err != nil {
+		return nil, err
+	}
+	if m.Id == publication.DefaultBookId {
+		return m, nil
+	}
+	book, err := FindBookById(dao, publication.DefaultBookId)
+	if err != nil {
+		return nil, err
+	}
+	return book, nil
+}
+
+func (m *Book) GetDefaultAsset(dao *daos.Dao) (*Asset, error) {
+	asset := &Asset{}
+	err := AssetQuery(dao).
+		AndWhere(dbx.HashExp{
+			"book": m.Id,
+			"type": AssetTypeCoverID,
+		}).
+		OrderBy("priority ASC").
+		Limit(1).
+		One(asset)
+	if errors.Is(err, sql.ErrNoRows) {
+		root, err := m.GetRoot(dao)
+		if err != nil {
+			return nil, err
+		}
+		err = AssetQuery(dao).
+			AndWhere(dbx.HashExp{
+				"book": root.Id,
+				"type": AssetTypeCoverID,
+			}).
+			OrderBy("priority ASC").
+			Limit(1).
+			One(asset)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		return asset, err
+	}
+	if err != nil {
+		return nil, err
+	}
+	return asset, nil
+}
+
 func (m *Book) Expand(dao *daos.Dao, e ExpandMap) error {
 	if e == nil {
 		return nil
@@ -67,7 +120,7 @@ func (m *Book) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["defaultAsset"]; exist {
-		asset, err := FindBookDefaultAsset(dao, m.Id, m.PublicationID)
+		asset, err := m.GetDefaultAsset(dao)
 		if err != nil {
 			return err
 		}
