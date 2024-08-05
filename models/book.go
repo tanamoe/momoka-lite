@@ -14,20 +14,19 @@ var _ models.Model = (*Book)(nil)
 type Book struct {
 	models.BaseModel
 
-	PublicationID    string                  `db:"publication" json:"publicationId"`
-	Publication      *Publication            `db:"-" json:"publication,omitempty"`
-	Edition          string                  `db:"edition" json:"edition"`
-	PublishDate      types.DateTime          `db:"publishDate" json:"publishDate"`
-	Covers           types.JsonArray[string] `db:"covers" json:"covers"`
-	Price            int                     `db:"price" json:"price"`
-	Note             string                  `db:"note" json:"note"`
-	Metadata         types.JsonMap           `db:"metadata" json:"metadata"`
-	ParentID         string                  `db:"parentId" json:"parentId"`
-	ParentCollection string                  `db:"parentCollection" json:"parentCollection"`
+	PublicationID string                  `db:"publication" json:"publicationId"`
+	Publication   *Publication            `db:"-" json:"publication,omitempty"`
+	Edition       string                  `db:"edition" json:"edition"`
+	PublishDate   types.DateTime          `db:"publishDate" json:"publishDate"`
+	Covers        types.JsonArray[string] `db:"covers" json:"covers"`
+	Price         int                     `db:"price" json:"price"`
+	Note          string                  `db:"note" json:"note"`
+	Metadata      types.JsonMap           `db:"metadata" json:"metadata"`
+	DefaultAsset  *Asset                  `db:"-" json:"defaultAsset,omitempty"`
 }
 
 func (m *Book) TableName() string {
-	return "bookDetails"
+	return "books"
 }
 
 func BookQuery(dao *daos.Dao) *dbx.SelectQuery {
@@ -64,6 +63,19 @@ func (m *Book) Expand(dao *daos.Dao, e ExpandMap) error {
 				return err
 			}
 			m.Publication = publication
+		}
+	}
+
+	if _, exist := e["defaultAsset"]; exist {
+		asset, err := FindBookDefaultAsset(dao, m.Id, m.PublicationID)
+		if err != nil {
+			return err
+		}
+		if asset != nil {
+			if err := asset.Expand(dao, e["defaultAsset"]); err != nil {
+				return err
+			}
+			m.DefaultAsset = asset
 		}
 	}
 
