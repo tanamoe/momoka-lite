@@ -9,6 +9,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
 	"tana.moe/momoka-lite/models"
+	"tana.moe/momoka-lite/tools"
 )
 
 func registerResizeAssetImageHook(
@@ -58,9 +59,13 @@ func resizeAssetImage(
 	if err != nil {
 		return err
 	}
+	id, err := tools.GetCollectionId(dao, asset.TableName())
+	if err != nil {
+		return err
+	}
 	path := fmt.Sprintf(
 		"%s/%s/%s",
-		asset.TableName(),
+		id,
 		asset.Id,
 		asset.Image,
 	)
