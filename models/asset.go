@@ -46,6 +46,36 @@ func FindAssetById(dao *daos.Dao, id string) (*Asset, error) {
 	return asset, nil
 }
 
+func FindBookDefaultAsset(dao *daos.Dao, bookId string, publicationId string) (*Asset, error) {
+	asset := &Asset{}
+	err := AssetQuery(dao).
+		AndWhere(dbx.HashExp{
+			"book": bookId,
+			"type": AssetTypeCoverID,
+		}).
+		OrderBy("priority ASC").
+		Limit(1).
+		One(asset)
+	if err == sql.ErrNoRows {
+		publication, err := FindPublicationById(dao, publicationId)
+		if err != nil {
+			return nil, err
+		}
+		// defaultBook unset
+		if publication.DefaultBookId == "" {
+			return nil, nil
+		}
+		if bookId == publication.DefaultBookId {
+			return nil, nil
+		}
+		return FindBookDefaultAsset(dao, publication.DefaultBookId, publicationId)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return asset, nil
+}
+
 func (m *Asset) Expand(dao *daos.Dao, e ExpandMap) error {
 	return nil
 }
