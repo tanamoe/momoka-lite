@@ -76,24 +76,13 @@ func (m *Book) GetDefaultAsset(dao *daos.Dao) (*Asset, error) {
 		One(asset)
 	if errors.Is(err, sql.ErrNoRows) {
 		root, err := m.GetRoot(dao)
-		if err != nil {
-			return nil, err
-		}
-		err = AssetQuery(dao).
-			AndWhere(dbx.HashExp{
-				"book": root.Id,
-				"type": AssetTypeCoverID,
-			}).
-			OrderBy("priority ASC").
-			Limit(1).
-			One(asset)
-		if errors.Is(err, sql.ErrNoRows) {
+		if root.Id == m.Id {
 			return nil, nil
 		}
 		if err != nil {
 			return nil, err
 		}
-		return asset, err
+		return root.GetDefaultAsset(dao)
 	}
 	if err != nil {
 		return nil, err
