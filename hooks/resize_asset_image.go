@@ -3,7 +3,7 @@ package hooks
 import (
 	"database/sql"
 	"errors"
-	"fmt"
+	"path"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -58,14 +58,9 @@ func resizeAssetImage(
 	if err != nil {
 		return err
 	}
-	path := fmt.Sprintf(
-		"%s/%s/%s",
-		asset.TableName(),
-		asset.Id,
-		asset.Image,
-	)
+	assetPath := path.Join(asset.Id, asset.Image)
 	asset.ResizedImage = types.JsonMap{}
-	resizedImages := getImageSizes(context.ImagorSecret, path)
+	resizedImages := getImageSizes(context.ImagorSecret, assetPath)
 	for id, resizedPath := range resizedImages {
 		asset.ResizedImage[id] = resizedPath
 	}
