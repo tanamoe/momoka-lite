@@ -17,6 +17,7 @@ type Publication struct {
 	ReleaseId     string                  `db:"release" json:"releaseId"`
 	Release       *Release                `db:"-" json:"release,omitempty"`
 	Name          string                  `db:"name" json:"name"`
+	Subtitle      string                  `db:"subtitle" json:"subtitle"`
 	Volume        int                     `db:"volume" json:"volume"`
 	DefaultBookId string                  `db:"defaultBook" json:"defaultBookId"`
 	DefaultBook   *Book                   `db:"-" json:"defaultBook,omitempty"`
