@@ -329,6 +329,7 @@ func updateTitleIndexTags(index *titleIndex) error {
 		normalizeTitleName(index.Name),
 	}
 	index.Tags = append(index.Tags, index.AdditionalName...)
+	index.Tags = append(index.Tags, normalizeAdditionalName(index.AdditionalName)...)
 	return nil
 }
 
@@ -338,4 +339,19 @@ func normalizeTitleName(name string) string {
 		"-",
 		" ",
 	)
+}
+
+func normalizeAdditionalName(additionalName []string) []string {
+	normalizedAdditionalName := []string{}
+	for _, name := range additionalName {
+		normalizedAdditionalName = append(
+			normalizedAdditionalName,
+			strings.ReplaceAll(
+				slug.Make(name),
+				"-",
+				" ",
+			),
+		)
+	}
+	return normalizedAdditionalName
 }
