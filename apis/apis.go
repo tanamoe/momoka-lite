@@ -21,5 +21,8 @@ func RegisterApis(app *pocketbase.PocketBase, e *core.ServeEvent) error {
 	if err := registerTitleSearchRoute(app, e); err != nil {
 		return err
 	}
+	if err := registerReleaseSearchRoute(app, e); err != nil {
+		return err
+	}
 	return nil
 }

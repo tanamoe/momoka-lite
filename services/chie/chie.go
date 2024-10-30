@@ -85,12 +85,18 @@ func StartService(app *pocketbase.PocketBase, context *models.AppContext) error 
 	if err := startTitleSearchService(app, context); err != nil {
 		return err
 	}
+	if err := startReleaseSearchService(app, context); err != nil {
+		return err
+	}
 	context.Logger.Info("Chie signal gateways is now ready.")
 	return nil
 }
 
 func startIndexing(app *pocketbase.PocketBase, context *models.AppContext) error {
 	if err := indexTitleCollection(app, context); err != nil {
+		return err
+	}
+	if err := indexReleaseCollection(app, context); err != nil {
 		return err
 	}
 	return nil
