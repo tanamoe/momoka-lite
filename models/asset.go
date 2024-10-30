@@ -16,6 +16,7 @@ type Asset struct {
 
 	BookId       string        `db:"book" json:"bookId"`
 	Book         *Book         `db:"-" json:"book,omitempty"`
+	Description  string        `db:"description" json:"description"`
 	TypeId       string        `db:"type" json:"typeId"`
 	Type         *AssetType    `db:"-" json:"type,omitempty"`
 	Image        string        `db:"image" json:"image"`
