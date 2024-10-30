@@ -34,15 +34,16 @@ type TitleSearchResponse struct {
 }
 
 type titleIndex struct {
-	Id          string                  `json:"id" db:"id"`
-	Name        string                  `json:"name" db:"name"`
-	Tags        []string                `json:"tags" db:"-"`
-	Format      string                  `json:"format" db:"format"`
-	Demographic string                  `json:"demographic" db:"demographic"`
-	Genres      types.JsonArray[string] `json:"genres" db:"genres"`
-	Staffs      []string                `json:"staffs" db:"staffs"`
-	Created     string                  `json:"created" db:"created"`
-	Updated     string                  `json:"updated" db:"updated"`
+	Id             string                  `json:"id" db:"id"`
+	Name           string                  `json:"name" db:"name"`
+	Tags           []string                `json:"tags" db:"-"`
+	Format         string                  `json:"format" db:"format"`
+	Demographic    string                  `json:"demographic" db:"demographic"`
+	Genres         types.JsonArray[string] `json:"genres" db:"genres"`
+	Staffs         []string                `json:"staffs" db:"staffs"`
+	AdditionalName []string                `json:"additionalName" db:"additionalName"`
+	Created        string                  `json:"created" db:"created"`
+	Updated        string                  `json:"updated" db:"updated"`
 }
 
 type titleSearchSignal struct {
@@ -221,6 +222,9 @@ func normalizeTitlesList(dao *daos.Dao, titles []*titleIndex) ([]*titleIndex, er
 	if err := assignStaffsToTitles(dao, titles); err != nil {
 		return nil, err
 	}
+	if err := assignAdditionalNameToTitles(dao, titles); err != nil {
+		return nil, err
+	}
 	for _, title := range titles {
 		if err := updateTitleIndexTags(title); err != nil {
 			return nil, err
@@ -282,6 +286,35 @@ func assignStaffsToTitles(dao *daos.Dao, titles []*titleIndex) error {
 	return nil
 }
 
+func assignAdditionalNameToTitles(dao *daos.Dao, titles []*titleIndex) error {
+	titleIds := []any{}
+	for _, title := range titles {
+		titleIds = append(titleIds, title.Id)
+	}
+
+	additionalNameMap := []*models.AdditionalTitleName{}
+	err := models.AdditionalTitleNameQuery(dao).Select().All(&additionalNameMap)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	titleIdMap := map[string]int{}
+	for index, title := range titles {
+		titleIdMap[title.Id] = index
+	}
+
+	for _, item := range additionalNameMap {
+		titles[titleIdMap[item.TitleId]].AdditionalName = append(
+			titles[titleIdMap[item.TitleId]].AdditionalName,
+			normalizeTitleName(item.Name),
+		)
+	}
+	return nil
+}
+
 func normalizeTitleStaffName(name string) string {
 	return strings.ReplaceAll(
 		slug.Make(name),
@@ -295,6 +328,8 @@ func updateTitleIndexTags(index *titleIndex) error {
 		index.Name,
 		normalizeTitleName(index.Name),
 	}
+	index.Tags = append(index.Tags, index.AdditionalName...)
+	index.Tags = append(index.Tags, normalizeAdditionalName(index.AdditionalName)...)
 	return nil
 }
 
@@ -304,4 +339,19 @@ func normalizeTitleName(name string) string {
 		"-",
 		" ",
 	)
+}
+
+func normalizeAdditionalName(additionalName []string) []string {
+	normalizedAdditionalName := []string{}
+	for _, name := range additionalName {
+		normalizedAdditionalName = append(
+			normalizedAdditionalName,
+			strings.ReplaceAll(
+				slug.Make(name),
+				"-",
+				" ",
+			),
+		)
+	}
+	return normalizedAdditionalName
 }

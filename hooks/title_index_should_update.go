@@ -62,6 +62,33 @@ func registerOnTitleIndexShouldChangeHook(
 			title.Id = work.GetString("title")
 			return updateTitleIndex(app, context, title)
 		})
+	app.
+		OnModelAfterCreate((&models.AdditionalTitleName{}).TableName()).
+		Add(func(e *core.ModelEvent) error {
+			additionalName := e.Model.(*pmodels.Record)
+			title := &models.Title{}
+			title.Id = additionalName.GetString("title")
+			return updateTitleIndex(app, context, title)
+		})
+
+	app.
+		OnModelAfterUpdate((&models.AdditionalTitleName{}).TableName()).
+		Add(func(e *core.ModelEvent) error {
+			additionalName := e.Model.(*pmodels.Record)
+			title := &models.Title{}
+			title.Id = additionalName.GetString("title")
+			return updateTitleIndex(app, context, title)
+		})
+
+	app.
+		OnModelAfterDelete((&models.AdditionalTitleName{}).TableName()).
+		Add(func(e *core.ModelEvent) error {
+			additionalName := e.Model.(*pmodels.Record)
+			title := &models.Title{}
+			title.Id = additionalName.GetString("title")
+			return updateTitleIndex(app, context, title)
+		})
+
 	return nil
 }
 
