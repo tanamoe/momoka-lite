@@ -36,6 +36,12 @@ type Release struct {
 	PartnerId      string        `db:"partner" json:"partnerId"`
 	Partner        *Publisher    `db:"-" json:"partner,omitempty"`
 	Status         ReleaseStatus `db:"status" json:"status"`
+	FrontId        string        `db:"front" json:"frontId"`
+	Front          *Asset        `db:"-" json:"front,omitempty"`
+	BannerId       string        `db:"banner" json:"bannerId"`
+	Banner         *Asset        `db:"-" json:"banner,omitempty"`
+	LogoId         string        `db:"logo" json:"logoId"`
+	Logo           *Asset        `db:"-" json:"logo,omitempty"`
 }
 
 func (m *Release) TableName() string {
@@ -102,6 +108,45 @@ func (m *Release) Expand(dao *daos.Dao, e ExpandMap) error {
 				return err
 			}
 			m.Partner = partner
+		}
+	}
+
+	if _, exist := e["front"]; exist {
+		front, err := FindAssetById(dao, m.FrontId)
+		if err != nil {
+			return err
+		}
+		if front != nil {
+			if err := front.Expand(dao, e["front"]); err != nil {
+				return err
+			}
+			m.Front = front
+		}
+	}
+
+	if _, exist := e["banner"]; exist {
+		banner, err := FindAssetById(dao, m.BannerId)
+		if err != nil {
+			return err
+		}
+		if banner != nil {
+			if err := banner.Expand(dao, e["banner"]); err != nil {
+				return err
+			}
+			m.Banner = banner
+		}
+	}
+
+	if _, exist := e["logo"]; exist {
+		logo, err := FindAssetById(dao, m.LogoId)
+		if err != nil {
+			return err
+		}
+		if logo != nil {
+			if err := logo.Expand(dao, e["logo"]); err != nil {
+				return err
+			}
+			m.Logo = logo
 		}
 	}
 
