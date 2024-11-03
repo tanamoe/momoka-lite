@@ -14,18 +14,20 @@ var _ models.Model = (*Title)(nil)
 type Title struct {
 	models.BaseModel
 
-	SlugGroup     string                  `db:"slugGroup" json:"-"`
-	Slug          string                  `db:"slug" json:"slug"`
-	Name          string                  `db:"name" json:"name"`
-	Description   string                  `db:"description" json:"description"`
-	FormatId      string                  `db:"format" json:"formatId"`
-	Format        *Format                 `db:"-" json:"format,omitempty"`
-	Cover         string                  `db:"cover" json:"cover"`
-	DemographicId string                  `db:"demographic" json:"demographicId"`
-	Demographic   *Demographic            `db:"-" json:"demographic,omitempty"`
-	GenreIds      types.JsonArray[string] `db:"genres" json:"genreIds"`
-	Genres        []*Genre                `db:"-" json:"genres,omitempty"`
-	Metadata      types.JsonMap           `db:"metadata" json:"metadata"`
+	SlugGroup        string                  `db:"slugGroup" json:"-"`
+	Slug             string                  `db:"slug" json:"slug"`
+	Name             string                  `db:"name" json:"name"`
+	Description      string                  `db:"description" json:"description"`
+	FormatId         string                  `db:"format" json:"formatId"`
+	Format           *Format                 `db:"-" json:"format,omitempty"`
+	Cover            string                  `db:"cover" json:"cover"`
+	DemographicId    string                  `db:"demographic" json:"demographicId"`
+	Demographic      *Demographic            `db:"-" json:"demographic,omitempty"`
+	GenreIds         types.JsonArray[string] `db:"genres" json:"genreIds"`
+	Genres           []*Genre                `db:"-" json:"genres,omitempty"`
+	DefaultReleaseId string                  `db:"defaultRelease" json:"defaultReleaseId"`
+	DefaultRelease   *Release                `db:"-" json:"defaultRelease,omitempty"`
+	Metadata         types.JsonMap           `db:"metadata" json:"metadata"`
 }
 
 func (m *Title) TableName() string {
@@ -95,6 +97,19 @@ func (m *Title) Expand(dao *daos.Dao, e ExpandMap) error {
 				return err
 			}
 			m.Genres = append(m.Genres, genre)
+		}
+	}
+
+	if _, exist := e["defaultRelease"]; exist {
+		release, err := FindReleaseById(dao, m.DefaultReleaseId)
+		if err != nil {
+			return err
+		}
+		if release != nil {
+			if err := release.Expand(dao, e["defaultRelease"]); err != nil {
+				return err
+			}
+			m.DefaultRelease = release
 		}
 	}
 
