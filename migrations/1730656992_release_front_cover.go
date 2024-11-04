@@ -46,7 +46,6 @@ func init() {
 				continue
 			}
 			release.FrontId = defaultFront.Id
-			print(defaultFront.Id)
 			if err := dao.Save(release); err != nil {
 				return err
 			}
