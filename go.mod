@@ -6,7 +6,7 @@ toolchain go1.24.0
 
 require (
 	github.com/blevesearch/bleve/v2 v2.4.2
-	github.com/gosimple/slug v1.14.0
+	github.com/gosimple/slug v1.15.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v5 v5.0.0-20230722203903-ec5b858dab61
 	github.com/pocketbase/dbx v1.10.1
