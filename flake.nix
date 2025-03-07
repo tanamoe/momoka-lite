@@ -1,7 +1,7 @@
 {
   description = "A Nix-flake-based Go 1.22 development environment";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
   outputs = {
     self,
@@ -34,6 +34,9 @@
 
           # https://github.com/golangci/golangci-lint
           golangci-lint
+
+          # for document
+          bun
         ];
       };
     });
