@@ -1,14 +1,11 @@
 module tana.moe/momoka-lite
 
-go 1.23.0
-
-toolchain go1.24.0
+go 1.24.0
 
 require (
 	github.com/blevesearch/bleve/v2 v2.4.4
 	github.com/gosimple/slug v1.15.0
 	github.com/joho/godotenv v1.5.1
-	github.com/labstack/echo/v5 v5.0.0-20230722203903-ec5b858dab61
 	github.com/pocketbase/dbx v1.11.0
 	github.com/pocketbase/pocketbase v0.25.9
 )

@@ -9,8 +9,11 @@ import (
 )
 
 func registerDocsRoute(app *pocketbase.PocketBase, e *core.ServeEvent) error {
+	if docs.Err != nil {
+		return docs.Err
+	}
 	e.Router.GET(
-		"/*",
+		"/{path...}",
 		apis.Static(docs.DistDirFS, false),
 	)
 	return nil
