@@ -4,15 +4,10 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
-var _ models.Model = (*BookMetadata)(nil)
-
 type BookMetadata struct {
-	models.BaseModel
-
+	Id        string  `db:"id" json:"id"`
 	BookID    string  `db:"book" json:"bookId"`
 	Book      *Book   `db:"-" json:"book,omitempty"`
 	ISBN      string  `db:"isbn" json:"isbn"`
@@ -28,13 +23,13 @@ func (m *BookMetadata) TableName() string {
 	return "bookMetadata"
 }
 
-func BookMetadataQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&BookMetadata{})
+func BookMetadataQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&BookMetadata{}).TableName())
 }
 
-func FindBookMetadataById(dao *daos.Dao, id string) (*BookMetadata, error) {
+func FindBookMetadataById(db dbx.Builder, id string) (*BookMetadata, error) {
 	book := &BookMetadata{}
-	err := BookMetadataQuery(dao).
+	err := BookMetadataQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(book)
@@ -47,18 +42,18 @@ func FindBookMetadataById(dao *daos.Dao, id string) (*BookMetadata, error) {
 	return book, nil
 }
 
-func (m *BookMetadata) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *BookMetadata) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["book"]; exist {
-		book, err := FindBookById(dao, m.BookID)
+		book, err := FindBookById(db, m.BookID)
 		if err != nil {
 			return err
 		}
 		if book != nil {
-			if err := book.Expand(dao, e["book"]); err != nil {
+			if err := book.Expand(db, e["book"]); err != nil {
 				return err
 			}
 			m.Book = book

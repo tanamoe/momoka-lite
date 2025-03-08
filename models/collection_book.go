@@ -4,11 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
-
-var _ models.Model = (*CollectionBook)(nil)
 
 type BookReadingStatus = string
 
@@ -18,8 +14,7 @@ const (
 )
 
 type CollectionBook struct {
-	models.BaseModel
-
+	Id           string            `db:"id" json:"id"`
 	CollectionId string            `db:"collection" json:"collectionId"`
 	Collection   *Collection       `db:"-" json:"collection,omitempty"`
 	BookId       string            `db:"book" json:"bookId"`
@@ -33,13 +28,13 @@ func (m *CollectionBook) TableName() string {
 	return "collectionBooks"
 }
 
-func CollectionBookQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&CollectionBook{})
+func CollectionBookQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&CollectionBook{}).TableName())
 }
 
-func FindCollectionBookById(dao *daos.Dao, id string) (*CollectionBook, error) {
+func FindCollectionBookById(db dbx.Builder, id string) (*CollectionBook, error) {
 	collectionBook := &CollectionBook{}
-	err := CollectionBookQuery(dao).
+	err := CollectionBookQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(collectionBook)
@@ -52,18 +47,18 @@ func FindCollectionBookById(dao *daos.Dao, id string) (*CollectionBook, error) {
 	return collectionBook, nil
 }
 
-func (m *CollectionBook) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *CollectionBook) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["collection"]; exist {
-		collection, err := FindCollectionById(dao, m.CollectionId)
+		collection, err := FindCollectionById(db, m.CollectionId)
 		if err != nil {
 			return err
 		}
 		if collection != nil {
-			if err := collection.Expand(dao, e["collection"]); err != nil {
+			if err := collection.Expand(db, e["collection"]); err != nil {
 				return err
 			}
 		}
@@ -71,12 +66,12 @@ func (m *CollectionBook) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["book"]; exist {
-		book, err := FindBookById(dao, m.BookId)
+		book, err := FindBookById(db, m.BookId)
 		if err != nil {
 			return err
 		}
 		if book != nil {
-			if err := book.Expand(dao, e["book"]); err != nil {
+			if err := book.Expand(db, e["book"]); err != nil {
 				return err
 			}
 		}

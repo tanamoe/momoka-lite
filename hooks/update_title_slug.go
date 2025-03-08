@@ -10,41 +10,45 @@ import (
 
 func registerUpdateTitleSlugHook(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	app.
-		OnModelAfterCreate((&models.Title{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			return updateTitleSlug(app, context, e)
+		OnModelAfterCreateSuccess((&models.Title{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			if err := updateTitleSlug(app, e); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
-		OnModelAfterUpdate((&models.Title{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			return updateTitleSlug(app, context, e)
+		OnModelAfterUpdateSuccess((&models.Title{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			if err := updateTitleSlug(app, e); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 	return nil
 }
 
 func updateTitleSlug(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 	e *core.ModelEvent,
 ) error {
-	titleId := e.Model.GetId()
-	title, err := models.FindTitleById(e.Dao, titleId)
+	titleId := e.Model.PK().(string)
+	title, err := models.FindTitleById(app.DB(), titleId)
 	if err != nil {
 		return err
 	}
 	if title.SlugGroup == "" {
 		title.SlugGroup = slug.Make(title.Name)
 		title.Slug = title.SlugGroup
-		if err := e.Dao.WithoutHooks().Save(title); err != nil {
+		if err := app.UnsafeWithoutHooks().DB().Model(title).Update(); err != nil {
 			return err
 		}
 	}
 	if err := services.UpdateTitleSlug(
-		e.Dao.WithoutHooks(),
+		app.UnsafeWithoutHooks().DB(),
 		title.SlugGroup,
 	); err != nil {
 		return err

@@ -4,15 +4,10 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
-var _ models.Model = (*User)(nil)
-
 type User struct {
-	models.BaseModel
-
+	Id          string `db:"id" json:"id"`
 	Username    string `db:"username" json:"username"`
 	Email       string `db:"email" json:"-"`
 	DisplayName string `db:"displayName" json:"displayName"`
@@ -25,13 +20,13 @@ func (m *User) TableName() string {
 	return "users"
 }
 
-func UserQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&User{})
+func UserQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&User{}).TableName())
 }
 
-func FindUserById(dao *daos.Dao, id string) (*User, error) {
+func FindUserById(db dbx.Builder, id string) (*User, error) {
 	user := &User{}
-	err := UserQuery(dao).
+	err := UserQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(user)
@@ -44,6 +39,6 @@ func FindUserById(dao *daos.Dao, id string) (*User, error) {
 	return user, nil
 }
 
-func (m *User) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *User) Expand(db dbx.Builder, e ExpandMap) error {
 	return nil
 }

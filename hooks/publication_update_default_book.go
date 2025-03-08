@@ -8,35 +8,34 @@ import (
 
 func registerPublicationUpdateDefaultBook(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	app.
 		// TODO: convert models.Book into "books" collection
-		OnModelAfterCreate("books").
-		Add(
+		OnModelCreate("books").
+		BindFunc(
 			func(e *core.ModelEvent) error {
-				bookId := e.Model.GetId()
-				book, err := models.FindBookById(app.Dao(), bookId)
+				bookId := e.Model.PK().(string)
+				book, err := models.FindBookById(app.DB(), bookId)
 				if err != nil {
 					return err
 				}
-				if err := book.Expand(app.Dao(), models.ExpandMap{
+				if err := book.Expand(app.DB(), models.ExpandMap{
 					"publication": {},
 				}); err != nil {
 					return err
 				}
 				if book.Publication.DefaultBookId == "" {
-					publication, err := models.FindPublicationById(app.Dao(), book.PublicationID)
+					publication, err := models.FindPublicationById(app.DB(), book.PublicationID)
 					if err != nil {
 						return err
 					}
 					publication.DefaultBookId = bookId
-					if err := app.Dao().WithoutHooks().Save(publication); err != nil {
+					if err := app.UnsafeWithoutHooks().DB().Model(publication).Update(); err != nil {
 						return nil
 					}
 				}
 
-				return nil
+				return e.Next()
 			},
 		)
 	return nil

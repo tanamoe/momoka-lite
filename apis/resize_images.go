@@ -6,9 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/tools"
@@ -32,23 +30,20 @@ func registerResizeImagesRoute(
 	core.Router.GET(
 		"/api/resize-images",
 		bulkUpsertRouteHandler(app, core, onResizeImagesRequest),
-		apis.ActivityLogger(app),
 	)
 	return nil
 }
 
 func onResizeImagesRequest(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	expand models.ExpandMap,
 ) (items []resizedImage, err error) {
-	images, err := extractResizeImageRequest(c)
+	images, err := extractResizeImageRequest(e)
 	if err != nil {
 		return nil, err
 	}
-	context := c.(*models.EchoContext)
-	secret := context.ImagorSecret()
+	secret := app.Store().Get(models.ImagorSecretKey).(string)
 	for _, image := range images {
 		if !isResizableImagePath(image) {
 			return nil, invalidRequestError
@@ -69,10 +64,14 @@ func onResizeImagesRequest(
 }
 
 func extractResizeImageRequest(
-	c echo.Context,
+	e *core.RequestEvent,
 ) ([]string, error) {
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil, err
+	}
 	var images []string
-	rawReq := c.QueryParam("images")
+	rawReq := info.Query["images"]
 	if strings.HasPrefix(rawReq, "[") {
 		if err := json.Unmarshal([]byte(rawReq), &images); err != nil {
 			return nil, err

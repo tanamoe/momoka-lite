@@ -4,16 +4,11 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-var _ models.Model = (*Title)(nil)
-
 type Title struct {
-	models.BaseModel
-
+	Id               string                  `db:"id" json:"id"`
 	SlugGroup        string                  `db:"slugGroup" json:"-"`
 	Slug             string                  `db:"slug" json:"slug"`
 	Name             string                  `db:"name" json:"name"`
@@ -23,24 +18,24 @@ type Title struct {
 	Cover            string                  `db:"cover" json:"cover"`
 	DemographicId    string                  `db:"demographic" json:"demographicId"`
 	Demographic      *Demographic            `db:"-" json:"demographic,omitempty"`
-	GenreIds         types.JsonArray[string] `db:"genres" json:"genreIds"`
+	GenreIds         types.JSONArray[string] `db:"genres" json:"genreIds"`
 	Genres           []*Genre                `db:"-" json:"genres,omitempty"`
 	DefaultReleaseId string                  `db:"defaultRelease" json:"defaultReleaseId"`
 	DefaultRelease   *Release                `db:"-" json:"defaultRelease,omitempty"`
-	Metadata         types.JsonMap           `db:"metadata" json:"metadata"`
+	Metadata         types.JSONMap[any]      `db:"metadata" json:"metadata"`
 }
 
 func (m *Title) TableName() string {
 	return "titles"
 }
 
-func TitleQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Title{})
+func TitleQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Title{}).TableName())
 }
 
-func FindTitleById(dao *daos.Dao, id string) (*Title, error) {
+func FindTitleById(db dbx.Builder, id string) (*Title, error) {
 	title := &Title{}
-	err := TitleQuery(dao).
+	err := TitleQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(title)
@@ -53,18 +48,18 @@ func FindTitleById(dao *daos.Dao, id string) (*Title, error) {
 	return title, nil
 }
 
-func (m *Title) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Title) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["format"]; exist {
-		format, err := FindFormatById(dao, m.FormatId)
+		format, err := FindFormatById(db, m.FormatId)
 		if err != nil {
 			return err
 		}
 		if format != nil {
-			if err := format.Expand(dao, e["format"]); err != nil {
+			if err := format.Expand(db, e["format"]); err != nil {
 				return err
 			}
 			m.Format = format
@@ -72,12 +67,12 @@ func (m *Title) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["demographic"]; exist {
-		demographic, err := FindDemographicById(dao, m.DemographicId)
+		demographic, err := FindDemographicById(db, m.DemographicId)
 		if err != nil {
 			return err
 		}
 		if demographic != nil {
-			if err := demographic.Expand(dao, e["demographic"]); err != nil {
+			if err := demographic.Expand(db, e["demographic"]); err != nil {
 				return err
 			}
 			m.Demographic = demographic
@@ -86,14 +81,14 @@ func (m *Title) Expand(dao *daos.Dao, e ExpandMap) error {
 
 	if _, exist := e["genres"]; exist {
 		for _, genreId := range m.GenreIds {
-			genre, err := FindGenreById(dao, genreId)
+			genre, err := FindGenreById(db, genreId)
 			if err != nil {
 				return err
 			}
 			if genre == nil {
 				continue
 			}
-			if err := genre.Expand(dao, e["genres"]); err != nil {
+			if err := genre.Expand(db, e["genres"]); err != nil {
 				return err
 			}
 			m.Genres = append(m.Genres, genre)
@@ -101,12 +96,12 @@ func (m *Title) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["defaultRelease"]; exist {
-		release, err := FindReleaseById(dao, m.DefaultReleaseId)
+		release, err := FindReleaseById(db, m.DefaultReleaseId)
 		if err != nil {
 			return err
 		}
 		if release != nil {
-			if err := release.Expand(dao, e["defaultRelease"]); err != nil {
+			if err := release.Expand(db, e["defaultRelease"]); err != nil {
 				return err
 			}
 			m.DefaultRelease = release

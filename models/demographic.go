@@ -4,15 +4,10 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
-var _ models.Model = (*Demographic)(nil)
-
 type Demographic struct {
-	models.BaseModel
-
+	Id   string `db:"id" json:"id"`
 	Name string `db:"name" json:"name"`
 	Slug string `db:"slug" json:"slug"`
 }
@@ -21,13 +16,13 @@ func (m *Demographic) TableName() string {
 	return "demographics"
 }
 
-func DemographicQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Demographic{})
+func DemographicQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Demographic{}).TableName())
 }
 
-func FindDemographicById(dao *daos.Dao, id string) (*Demographic, error) {
+func FindDemographicById(db dbx.Builder, id string) (*Demographic, error) {
 	demographic := &Demographic{}
-	err := DemographicQuery(dao).
+	err := DemographicQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(demographic)
@@ -40,6 +35,6 @@ func FindDemographicById(dao *daos.Dao, id string) (*Demographic, error) {
 	return demographic, nil
 }
 
-func (m *Demographic) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Demographic) Expand(db dbx.Builder, e ExpandMap) error {
 	return nil
 }

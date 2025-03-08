@@ -5,48 +5,63 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/daos"
-	pmodels "github.com/pocketbase/pocketbase/models"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/tools"
 )
 
 func registerAppendInCollectionsMetadataHook(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	targetCollections := []string{"books", "bookDetails"}
-	app.OnRecordViewRequest(targetCollections...).Add(func(e *core.RecordViewEvent) error {
-		user, _ := e.HttpContext.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-		if user == nil {
+	app.OnRecordViewRequest(targetCollections...).BindFunc(func(e *core.RecordRequestEvent) error {
+		info, err := e.RequestInfo()
+		if err != nil {
+			return err
+		}
+		if info.Auth == nil {
 			return nil
 		}
-		return appendInCollectionsMetadata(
+		user, err := models.FindUserById(app.DB(), info.Auth.Id)
+		if err == nil {
+			return err
+		}
+		err = appendInCollectionsMetadata(
 			app,
-			context,
-			e.HttpContext,
+			info,
 			user,
-			[](*pmodels.Record){e.Record},
+			[](*core.Record){e.Record},
 		)
+		if err != nil {
+			return err
+		}
+		return e.Next()
 	})
 
-	app.OnRecordsListRequest(targetCollections...).Add(func(e *core.RecordsListEvent) error {
-		user, _ := e.HttpContext.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-		if user == nil {
+	app.OnRecordsListRequest(targetCollections...).BindFunc(func(e *core.RecordsListRequestEvent) error {
+		info, err := e.RequestInfo()
+		if err != nil {
+			return err
+		}
+		if info.Auth == nil {
 			return nil
 		}
-		return appendInCollectionsMetadata(
+		user, err := models.FindUserById(app.DB(), info.Auth.Id)
+		if err == nil {
+			return err
+		}
+		err = appendInCollectionsMetadata(
 			app,
-			context,
-			e.HttpContext,
+			info,
 			user,
 			e.Records,
 		)
+		if err != nil {
+			return err
+		}
+		return e.Next()
 	})
 
 	return nil
@@ -54,10 +69,9 @@ func registerAppendInCollectionsMetadataHook(
 
 func appendInCollectionsMetadata(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
-	c echo.Context,
-	user *pmodels.Record,
-	records []*pmodels.Record,
+	c *core.RequestInfo,
+	user *models.User,
+	records []*core.Record,
 ) error {
 	expand, err := tools.ExtractExpandMap(c)
 	if err != nil {
@@ -72,7 +86,7 @@ func appendInCollectionsMetadata(
 		expand = expand["inCollections"]
 	}
 	bookToCollectionsMap, err := booksWithBelongCollectionsMap(
-		app.Dao(),
+		app.DB(),
 		user,
 		records,
 	)
@@ -85,7 +99,7 @@ func appendInCollectionsMetadata(
 			continue
 		}
 		for _, collection := range collections {
-			if err := collection.Expand(app.Dao(), expand); err != nil {
+			if err := collection.Expand(app.DB(), expand); err != nil {
 				return err
 			}
 		}
@@ -100,9 +114,9 @@ func appendInCollectionsMetadata(
 }
 
 func booksWithBelongCollectionsMap(
-	dao *daos.Dao,
-	user *pmodels.Record,
-	records []*pmodels.Record,
+	db dbx.Builder,
+	user *models.User,
+	records []*core.Record,
 ) (map[string][]*models.Collection, error) {
 	bookCollections := []struct {
 		*models.Collection
@@ -122,7 +136,7 @@ func booksWithBelongCollectionsMap(
 	collectionColumns := fmt.Sprintf("%s.*", collectionTable)
 	bookIdColumn := fmt.Sprintf("%s.book as bookId", collectionBookTable)
 
-	err := models.CollectionBookQuery(dao).
+	err := models.CollectionBookQuery(db).
 		Select(collectionColumns, bookIdColumn).
 		RightJoin(
 			collectionMemberTable,
