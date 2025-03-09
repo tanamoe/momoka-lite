@@ -11,7 +11,7 @@ func registerPublicationUpdateDefaultBook(
 ) error {
 	app.
 		// TODO: convert models.Book into "books" collection
-		OnModelCreate("books").
+		OnModelAfterCreateSuccess("books").
 		BindFunc(
 			func(e *core.ModelEvent) error {
 				bookId := e.Model.PK().(string)

@@ -22,10 +22,13 @@ func registerAppendInCollectionsMetadataHook(
 			return err
 		}
 		if info.Auth == nil {
-			return nil
+			return e.Next()
+		}
+		if info.Auth.IsSuperuser() {
+			return e.Next()
 		}
 		user, err := models.FindUserById(app.DB(), info.Auth.Id)
-		if err == nil {
+		if err != nil {
 			return err
 		}
 		err = appendInCollectionsMetadata(
@@ -46,10 +49,13 @@ func registerAppendInCollectionsMetadataHook(
 			return err
 		}
 		if info.Auth == nil {
-			return nil
+			return e.Next()
+		}
+		if info.Auth.IsSuperuser() {
+			return e.Next()
 		}
 		user, err := models.FindUserById(app.DB(), info.Auth.Id)
-		if err == nil {
+		if err != nil {
 			return err
 		}
 		err = appendInCollectionsMetadata(

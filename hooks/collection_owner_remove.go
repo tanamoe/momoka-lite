@@ -28,7 +28,7 @@ func registerOnCollectionOwnerRemove(
 					return err
 				}
 				if collectionMember.Collection == nil {
-					return nil
+					return e.Next()
 				}
 				if collectionMember.UserId == collectionMember.Collection.OwnerId {
 					return collectionOwnerRemoveError

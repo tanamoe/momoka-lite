@@ -15,7 +15,10 @@ func registerOnTitleIndexShouldChangeHook(
 		BindFunc(func(e *core.ModelEvent) error {
 			title := &models.Title{}
 			title.Id = e.Model.PK().(string)
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
@@ -23,7 +26,10 @@ func registerOnTitleIndexShouldChangeHook(
 		BindFunc(func(e *core.ModelEvent) error {
 			title := &models.Title{}
 			title.Id = e.Model.PK().(string)
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
@@ -31,7 +37,10 @@ func registerOnTitleIndexShouldChangeHook(
 		BindFunc(func(e *core.ModelEvent) error {
 			title := &models.Title{}
 			title.Id = e.Model.PK().(string)
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
@@ -40,7 +49,10 @@ func registerOnTitleIndexShouldChangeHook(
 			work := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = work.GetString("title")
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
@@ -49,7 +61,10 @@ func registerOnTitleIndexShouldChangeHook(
 			work := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = work.GetString("title")
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
@@ -58,7 +73,10 @@ func registerOnTitleIndexShouldChangeHook(
 			work := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = work.GetString("title")
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 	app.
 		OnModelAfterCreateSuccess((&models.AdditionalTitleName{}).TableName()).
@@ -66,7 +84,10 @@ func registerOnTitleIndexShouldChangeHook(
 			additionalName := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = additionalName.GetString("title")
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
@@ -75,7 +96,10 @@ func registerOnTitleIndexShouldChangeHook(
 			additionalName := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = additionalName.GetString("title")
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
@@ -84,7 +108,10 @@ func registerOnTitleIndexShouldChangeHook(
 			additionalName := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = additionalName.GetString("title")
-			return updateTitleIndex(app, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	return nil

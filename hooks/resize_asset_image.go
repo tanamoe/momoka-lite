@@ -33,12 +33,12 @@ func registerResizeAssetImageHook(
 			models.AssetImageResizedStateId: true,
 		}
 		if _, exist := targetStateIds[e.Model.PK().(string)]; !exist {
-			return nil
+			return e.Next()
 		}
 		assets := []*models.Asset{}
 		err := models.AssetQuery(app.DB()).Select("id").All(&assets)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil
+			return e.Next()
 		}
 		if err != nil {
 			return err

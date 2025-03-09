@@ -36,15 +36,17 @@ func registerAppendImageSecretHook(
 			}
 		}
 
-		return nil
+		return e.Next()
 	})
 
 	return nil
 }
 
 func appendImageSecret(secret string, record *core.Record) error {
-	if _, exist := record.FieldsData()[imageCoversField]; exist {
-		return appendImageSliceSecret(secret, record)
+	if record.FieldsData() != nil {
+		if _, exist := record.FieldsData()[imageCoversField]; exist {
+			return appendImageSliceSecret(secret, record)
+		}
 	}
 
 	path := getCoverImagePath(record)
