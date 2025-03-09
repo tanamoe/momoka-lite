@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/core"
 )
 
 type CollectionVisibility = string
@@ -136,6 +137,7 @@ func (m *Collection) HadMember(db dbx.Builder, userId string) (bool, error) {
 
 func (m *Collection) AddMember(db dbx.Builder, userId string, role CollectionAccessRole) error {
 	member := &CollectionMember{
+		Id:           core.GenerateDefaultRandomId(),
 		CollectionId: m.Id,
 		UserId:       userId,
 		Role:         role,
