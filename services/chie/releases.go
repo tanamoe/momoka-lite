@@ -10,7 +10,6 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/daos"
 	"tana.moe/momoka-lite/models"
 )
 
@@ -50,7 +49,7 @@ type releaseSearchSignal struct {
 }
 
 type releaseUpdateSignal struct {
-	Dao     *daos.Dao
+	Db      dbx.Builder
 	Release *models.Release
 	Err     chan error
 }
@@ -61,7 +60,7 @@ var (
 	releaseIndexMapping  bleve.Index
 )
 
-func indexReleaseCollection(app *pocketbase.PocketBase, context *models.AppContext) error {
+func indexReleaseCollection(app *pocketbase.PocketBase) error {
 	mapping := bleve.NewIndexMapping()
 	index, err := bleve.NewMemOnly(mapping)
 	if err != nil {
@@ -69,10 +68,9 @@ func indexReleaseCollection(app *pocketbase.PocketBase, context *models.AppConte
 	}
 	releaseIndexMapping = index
 
-	dao := app.Dao()
 	pageSize := int64(100)
 	for offset := int64(0); ; offset += pageSize {
-		releases, err := fetchReleasesList(dao, offset, pageSize)
+		releases, err := fetchReleasesList(app.DB(), offset, pageSize)
 		if err != nil {
 			return err
 		}
@@ -87,7 +85,7 @@ func indexReleaseCollection(app *pocketbase.PocketBase, context *models.AppConte
 	}
 }
 
-func startReleaseSearchService(app *pocketbase.PocketBase, context *models.AppContext) error {
+func startReleaseSearchService(app *pocketbase.PocketBase) error {
 	go func() {
 		for {
 			select {
@@ -100,7 +98,7 @@ func startReleaseSearchService(app *pocketbase.PocketBase, context *models.AppCo
 				}
 
 			case signal := <-releaseUpdateChannel:
-				signal.Err <- updateReleaseIndex(signal.Dao, signal.Release)
+				signal.Err <- updateReleaseIndex(signal.Db, signal.Release)
 			}
 		}
 	}()
@@ -116,10 +114,10 @@ func SearchForReleases(query ReleaseSearchRequest) ReleaseSearchResponse {
 	return <-res
 }
 
-func UpdateReleaseIndex(dao *daos.Dao, release *models.Release) error {
+func UpdateReleaseIndex(db dbx.Builder, release *models.Release) error {
 	err := make(chan error)
 	releaseUpdateChannel <- releaseUpdateSignal{
-		Dao:     dao,
+		Db:      db,
 		Release: release,
 		Err:     err,
 	}
@@ -169,10 +167,10 @@ func searchForReleases(req ReleaseSearchRequest) (int, []string, error) {
 	return int(result.Total), hits, nil
 }
 
-func updateReleaseIndex(dao *daos.Dao, release *models.Release) error {
+func updateReleaseIndex(db dbx.Builder, release *models.Release) error {
 	releaseIdx := &releaseIndex{}
 	err := models.
-		ReleaseQuery(dao).
+		ReleaseQuery(db).
 		Where(
 			dbx.HashExp{
 				"id": release.Id,
@@ -186,7 +184,7 @@ func updateReleaseIndex(dao *daos.Dao, release *models.Release) error {
 	if err != nil {
 		return err
 	}
-	releases, err := normalizeReleasesList(dao, []*releaseIndex{releaseIdx})
+	releases, err := normalizeReleasesList(db, []*releaseIndex{releaseIdx})
 	if err != nil {
 		return err
 	}
@@ -197,19 +195,19 @@ func updateReleaseIndex(dao *daos.Dao, release *models.Release) error {
 	return nil
 }
 
-func fetchReleasesList(dao *daos.Dao, offset int64, limit int64) (releases []*releaseIndex, err error) {
-	err = models.ReleaseQuery(dao).Offset(offset).Limit(limit).All(&releases)
+func fetchReleasesList(db dbx.Builder, offset int64, limit int64) (releases []*releaseIndex, err error) {
+	err = models.ReleaseQuery(db).Offset(offset).Limit(limit).All(&releases)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	releases, err = normalizeReleasesList(dao, releases)
+	releases, err = normalizeReleasesList(db, releases)
 	return
 }
 
-func normalizeReleasesList(dao *daos.Dao, releases []*releaseIndex) ([]*releaseIndex, error) {
+func normalizeReleasesList(db dbx.Builder, releases []*releaseIndex) ([]*releaseIndex, error) {
 	for _, release := range releases {
 		if err := updateReleaseIndexTags(release); err != nil {
 			return nil, err

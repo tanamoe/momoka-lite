@@ -4,15 +4,10 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
-var _ models.Model = (*Work)(nil)
-
 type Work struct {
-	models.BaseModel
-
+	Id      string `db:"id" json:"id"`
 	TitleId string `db:"title" json:"titleId"`
 	Title   *Title `db:"-" json:"title,omitempty"`
 	StaffId string `db:"staff" json:"staffId"`
@@ -23,13 +18,13 @@ func (m *Work) TableName() string {
 	return "works"
 }
 
-func WorkQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Work{})
+func WorkQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Work{}).TableName())
 }
 
-func FindWorkById(dao *daos.Dao, id string) (*Work, error) {
+func FindWorkById(db dbx.Builder, id string) (*Work, error) {
 	work := &Work{}
-	err := GenreQuery(dao).
+	err := GenreQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(work)
@@ -42,18 +37,18 @@ func FindWorkById(dao *daos.Dao, id string) (*Work, error) {
 	return work, nil
 }
 
-func (m *Work) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Work) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["title"]; exist {
-		title, err := FindTitleById(dao, m.TitleId)
+		title, err := FindTitleById(db, m.TitleId)
 		if err != nil {
 			return err
 		}
 		if title != nil {
-			if err := title.Expand(dao, e["title"]); err != nil {
+			if err := title.Expand(db, e["title"]); err != nil {
 				return err
 			}
 			m.Title = title
@@ -61,12 +56,12 @@ func (m *Work) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["staff"]; exist {
-		staff, err := FindStaffById(dao, m.StaffId)
+		staff, err := FindStaffById(db, m.StaffId)
 		if err != nil {
 			return err
 		}
 		if staff != nil {
-			if err := staff.Expand(dao, e["staff"]); err != nil {
+			if err := staff.Expand(db, e["staff"]); err != nil {
 				return err
 			}
 			m.Staff = staff

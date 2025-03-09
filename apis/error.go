@@ -2,13 +2,11 @@ package apis
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
-	"go.uber.org/zap"
-	"tana.moe/momoka-lite/models"
 )
 
 var (
@@ -21,12 +19,11 @@ var (
 
 func handleError(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	err error,
 ) error {
 	if errors.Is(err, invalidRequestError) {
-		return c.JSON(
+		return e.JSON(
 			http.StatusBadRequest,
 			errorResponse{
 				response: response{
@@ -38,7 +35,7 @@ func handleError(
 	}
 
 	if errors.Is(err, unauthorizedError) {
-		return c.JSON(
+		return e.JSON(
 			http.StatusBadRequest,
 			errorResponse{
 				response: response{
@@ -50,7 +47,7 @@ func handleError(
 	}
 
 	if errors.Is(err, forbiddenError) {
-		return c.JSON(
+		return e.JSON(
 			http.StatusBadRequest,
 			errorResponse{
 				response: response{
@@ -62,7 +59,7 @@ func handleError(
 	}
 
 	if errors.Is(err, notFoundError) {
-		return c.JSON(
+		return e.JSON(
 			http.StatusNotFound,
 			errorResponse{
 				response: response{
@@ -73,15 +70,29 @@ func handleError(
 		)
 	}
 
-	appCtx := c.(*models.EchoContext)
-	appCtx.Logger().Error(
+	info, err2 := e.RequestInfo()
+	if err2 != nil {
+		app.Logger().Error(
+			"Internal server error occur.",
+			slog.Any("error", err),
+		)
+		return e.JSON(
+			http.StatusInternalServerError,
+			errorResponse{
+				response: response{
+					Success: false,
+				},
+				Message: "Internal server error.",
+			},
+		)
+	}
+	app.Logger().Error(
 		"Internal server error occur.",
-		zap.String("route", c.RouteInfo().Path()),
-		zap.Any("pathParms", c.PathParams()),
-		zap.Any("queryParams", c.QueryParams()),
-		zap.Error(err),
+		slog.String("route", e.Request.RequestURI),
+		slog.Any("queryParams", info.Query),
+		slog.Any("error", err),
 	)
-	return c.JSON(
+	return e.JSON(
 		http.StatusInternalServerError,
 		errorResponse{
 			response: response{

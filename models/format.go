@@ -4,15 +4,10 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
-var _ models.Model = (*Format)(nil)
-
 type Format struct {
-	models.BaseModel
-
+	Id          string `db:"id" json:"id"`
 	Name        string `db:"name" json:"name"`
 	Slug        string `db:"slug" json:"slug"`
 	Color       string `db:"color" json:"color"`
@@ -24,13 +19,13 @@ func (m *Format) TableName() string {
 	return "formats"
 }
 
-func FormatQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Format{})
+func FormatQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Format{}).TableName())
 }
 
-func FindFormatById(dao *daos.Dao, id string) (*Format, error) {
+func FindFormatById(db dbx.Builder, id string) (*Format, error) {
 	format := &Format{}
-	err := FormatQuery(dao).
+	err := FormatQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(format)
@@ -43,6 +38,6 @@ func FindFormatById(dao *daos.Dao, id string) (*Format, error) {
 	return format, nil
 }
 
-func (m *Format) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Format) Expand(db dbx.Builder, e ExpandMap) error {
 	return nil
 }

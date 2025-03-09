@@ -4,11 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
-
-var _ models.Model = (*CollectionMember)(nil)
 
 type CollectionAccessRole = string
 
@@ -18,8 +14,7 @@ const (
 )
 
 type CollectionMember struct {
-	models.BaseModel
-
+	Id           string               `db:"id" json:"id"`
 	CollectionId string               `db:"collection" json:"collectionId"`
 	Collection   *Collection          `db:"-" json:"collection,omitempty"`
 	UserId       string               `db:"user" json:"userId"`
@@ -31,13 +26,13 @@ func (m *CollectionMember) TableName() string {
 	return "collectionMembers"
 }
 
-func CollectionMemberQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&CollectionMember{})
+func CollectionMemberQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&CollectionMember{}).TableName())
 }
 
-func FindCollectionMemberById(dao *daos.Dao, id string) (*CollectionMember, error) {
+func FindCollectionMemberById(db dbx.Builder, id string) (*CollectionMember, error) {
 	collectionMember := &CollectionMember{}
-	err := CollectionMemberQuery(dao).
+	err := CollectionMemberQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(collectionMember)
@@ -50,18 +45,18 @@ func FindCollectionMemberById(dao *daos.Dao, id string) (*CollectionMember, erro
 	return collectionMember, nil
 }
 
-func (m *CollectionMember) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *CollectionMember) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["collection"]; exist {
-		collection, err := FindCollectionById(dao, m.CollectionId)
+		collection, err := FindCollectionById(db, m.CollectionId)
 		if err != nil {
 			return err
 		}
 		if collection != nil {
-			if err := collection.Expand(dao, e["collection"]); err != nil {
+			if err := collection.Expand(db, e["collection"]); err != nil {
 				return err
 			}
 		}
@@ -69,12 +64,12 @@ func (m *CollectionMember) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["user"]; exist {
-		user, err := FindUserById(dao, m.UserId)
+		user, err := FindUserById(db, m.UserId)
 		if err != nil {
 			return err
 		}
 		if user != nil {
-			if err := user.Expand(dao, e["user"]); err != nil {
+			if err := user.Expand(db, e["user"]); err != nil {
 				return err
 			}
 		}

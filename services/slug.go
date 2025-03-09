@@ -7,33 +7,32 @@ import (
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/daos"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/tools"
 )
 
 type slugUpdateSignal struct {
-	Dao       *daos.Dao
+	Db        dbx.Builder
 	SlugGroup string
 	Err       chan error
 }
 
 var slugUpdateChannel = make(chan slugUpdateSignal)
 
-func startUpdateSlugService(app *pocketbase.PocketBase, context *models.AppContext) error {
+func startUpdateSlugService(app *pocketbase.PocketBase) error {
 	go func() {
 		for {
 			signal := <-slugUpdateChannel
-			signal.Err <- resolveUpdateTitleSlugSignal(signal.Dao, signal.SlugGroup)
+			signal.Err <- resolveUpdateTitleSlugSignal(signal.Db, signal.SlugGroup)
 		}
 	}()
 	return nil
 }
 
-func resolveUpdateTitleSlugSignal(dao *daos.Dao, slugGroup string) error {
+func resolveUpdateTitleSlugSignal(db dbx.Builder, slugGroup string) error {
 	titleTableName := (&models.Title{}).TableName()
 	duplicatedTitles := []*models.Title{}
-	if err := models.TitleQuery(dao).
+	if err := models.TitleQuery(db).
 		Where(
 			dbx.HashExp{
 				fmt.Sprintf("%s.slugGroup", titleTableName): slugGroup,
@@ -47,14 +46,14 @@ func resolveUpdateTitleSlugSignal(dao *daos.Dao, slugGroup string) error {
 	}
 	if len(duplicatedTitles) <= 1 {
 		duplicatedTitles[0].Slug = duplicatedTitles[0].SlugGroup
-		if err := dao.Save(duplicatedTitles[0]); err != nil {
+		if err := db.Model(duplicatedTitles[0]).Update(); err != nil {
 			return err
 		}
 		return nil
 	}
 	formatMap := map[string][]*models.Title{}
 	for _, title := range duplicatedTitles {
-		if err := title.Expand(dao, models.ExpandMap{"format": {}}); err != nil {
+		if err := title.Expand(db, models.ExpandMap{"format": {}}); err != nil {
 			return err
 		}
 		if title.Format == nil {
@@ -72,7 +71,7 @@ func resolveUpdateTitleSlugSignal(dao *daos.Dao, slugGroup string) error {
 				titles[0].SlugGroup,
 				format,
 			)
-			if err := dao.Save(titles[0]); err != nil {
+			if err := db.Model(titles[0]).Update(); err != nil {
 				return err
 			}
 			continue
@@ -93,7 +92,7 @@ func resolveUpdateTitleSlugSignal(dao *daos.Dao, slugGroup string) error {
 			}
 			randomSlugId := strings.ToLower(tools.RandStr(5))
 			title.Slug = fmt.Sprintf("%s-%s", title.SlugGroup, randomSlugId)
-			if err := dao.Save(title); err != nil {
+			if err := db.Model(title).Update(); err != nil {
 				return err
 			}
 		}
@@ -101,10 +100,10 @@ func resolveUpdateTitleSlugSignal(dao *daos.Dao, slugGroup string) error {
 	return nil
 }
 
-func UpdateTitleSlug(dao *daos.Dao, slugGroup string) error {
+func UpdateTitleSlug(db dbx.Builder, slugGroup string) error {
 	err := make(chan error)
 	slugUpdateChannel <- slugUpdateSignal{
-		Dao:       dao,
+		Db:        db,
 		SlugGroup: slugGroup,
 		Err:       err,
 	}

@@ -4,35 +4,38 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/daos"
 	"tana.moe/momoka-lite/models"
 )
 
 func registerOnUpdateDefaultCollection(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	app.
-		OnModelAfterCreate((&models.Collection{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			return onUpdateDefaultCollection(app, context, e)
+		OnModelAfterCreateSuccess((&models.Collection{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			if err := onUpdateDefaultCollection(app, e); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
-		OnModelAfterUpdate((&models.Collection{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			return onUpdateDefaultCollection(app, context, e)
+		OnModelAfterUpdateSuccess((&models.Collection{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			if err := onUpdateDefaultCollection(app, e); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 	return nil
 }
 
 func onUpdateDefaultCollection(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 	e *core.ModelEvent,
 ) error {
-	collectionId := e.Model.GetId()
-	collection, err := models.FindCollectionById(app.Dao(), collectionId)
+	collectionId := e.Model.PK().(string)
+	collection, err := models.FindCollectionById(app.DB(), collectionId)
 	if err != nil {
 		return err
 	}
@@ -40,7 +43,7 @@ func onUpdateDefaultCollection(
 		return nil
 	}
 	if err := markOtherOwnedCollectionAsNotDefault(
-		app.Dao(),
+		app,
 		collection,
 	); err != nil {
 		return err
@@ -49,13 +52,13 @@ func onUpdateDefaultCollection(
 }
 
 func markOtherOwnedCollectionAsNotDefault(
-	dao *daos.Dao,
+	app *pocketbase.PocketBase,
 	collection *models.Collection,
 ) error {
-	return dao.RunInTransaction(
-		func(dao *daos.Dao) error {
+	return app.RunInTransaction(
+		func(app core.App) error {
 			collections := []*models.Collection{}
-			if err := models.CollectionQuery(dao).
+			if err := models.CollectionQuery(app.DB()).
 				Where(
 					dbx.And(
 						dbx.HashExp{"owner": collection.OwnerId},
@@ -67,7 +70,7 @@ func markOtherOwnedCollectionAsNotDefault(
 
 			for _, collection := range collections {
 				collection.Default = false
-				if err := dao.WithoutHooks().Save(collection); err != nil {
+				if err := app.UnsafeWithoutHooks().DB().Model(collection).Update(); err != nil {
 					return nil
 				}
 			}

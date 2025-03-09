@@ -4,16 +4,11 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-var _ models.Model = (*Publication)(nil)
-
 type Publication struct {
-	models.BaseModel
-
+	Id            string                  `db:"id" json:"id"`
 	ReleaseId     string                  `db:"release" json:"releaseId"`
 	Release       *Release                `db:"-" json:"release,omitempty"`
 	Name          string                  `db:"name" json:"name"`
@@ -21,21 +16,21 @@ type Publication struct {
 	Volume        int                     `db:"volume" json:"volume"`
 	DefaultBookId string                  `db:"defaultBook" json:"defaultBookId"`
 	DefaultBook   *Book                   `db:"-" json:"defaultBook,omitempty"`
-	Covers        types.JsonArray[string] `db:"covers" json:"covers"`
-	Metadata      types.JsonMap           `db:"-" json:"-"`
+	Covers        types.JSONArray[string] `db:"covers" json:"covers"`
+	Metadata      types.JSONMap[any]      `db:"-" json:"-"`
 }
 
 func (m *Publication) TableName() string {
 	return "publications"
 }
 
-func PublicationQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Publication{})
+func PublicationQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Publication{}).TableName())
 }
 
-func FindPublicationById(dao *daos.Dao, id string) (*Publication, error) {
+func FindPublicationById(db dbx.Builder, id string) (*Publication, error) {
 	publication := &Publication{}
-	err := PublicationQuery(dao).
+	err := PublicationQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(publication)
@@ -48,18 +43,18 @@ func FindPublicationById(dao *daos.Dao, id string) (*Publication, error) {
 	return publication, nil
 }
 
-func (m *Publication) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Publication) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["release"]; exist {
-		release, err := FindReleaseById(dao, m.ReleaseId)
+		release, err := FindReleaseById(db, m.ReleaseId)
 		if err != nil {
 			return err
 		}
 		if release != nil {
-			if err := release.Expand(dao, e["release"]); err != nil {
+			if err := release.Expand(db, e["release"]); err != nil {
 				return err
 			}
 			m.Release = release
@@ -67,12 +62,12 @@ func (m *Publication) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["defaultBook"]; exist {
-		book, err := FindBookById(dao, m.DefaultBookId)
+		book, err := FindBookById(db, m.DefaultBookId)
 		if err != nil {
 			return err
 		}
 		if book != nil {
-			if err := book.Expand(dao, e["defaultBook"]); err != nil {
+			if err := book.Expand(db, e["defaultBook"]); err != nil {
 				return err
 			}
 			m.DefaultBook = book

@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/tools"
 )
+
+type handlerFunc func(e *core.RequestEvent) error
 
 type response struct {
 	Success bool `json:"success"`
@@ -51,15 +52,13 @@ type errorResponse struct {
 
 type viewHandlerFunction[T comparable] func(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	expand models.ExpandMap,
 ) (T, error)
 
 type listHandlerFunction[T comparable] func(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	page uint,
 	perPage int,
 	expand models.ExpandMap,
@@ -67,39 +66,40 @@ type listHandlerFunction[T comparable] func(
 
 type upsertHandlerFunction[T comparable] func(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	expand models.ExpandMap,
 ) (item T, err error)
 
 type bulkUpsertHandlerFunction[T comparable] func(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	expand models.ExpandMap,
 ) (items []T, err error)
 
 type deleteHandlerFunction func(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 ) (err error)
 
 func viewRouteHandler[T comparable](
 	app *pocketbase.PocketBase,
 	e *core.ServeEvent,
 	handler viewHandlerFunction[T],
-) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		expand, err := tools.ExtractExpandMap(c)
+) handlerFunc {
+	return func(e *core.RequestEvent) error {
+		info, err := e.RequestInfo()
 		if err != nil {
-			return handleError(app, e, c, errors.Join(err, invalidRequestError))
+			return err
 		}
-		r, err := handler(app, e, c, expand)
+		expand, err := tools.ExtractExpandMap(info)
 		if err != nil {
-			return handleError(app, e, c, err)
+			return handleError(app, e, errors.Join(err, invalidRequestError))
 		}
-		return c.JSON(
+		r, err := handler(app, e, expand)
+		if err != nil {
+			return handleError(app, e, err)
+		}
+		return e.JSON(
 			http.StatusOK,
 			viewResponse[T]{
 				response: response{
@@ -115,26 +115,30 @@ func listRouteHandler[T comparable](
 	app *pocketbase.PocketBase,
 	e *core.ServeEvent,
 	handler listHandlerFunction[T],
-) echo.HandlerFunc {
+) handlerFunc {
 	type listQuery struct {
 		Page    uint `query:"page"`
 		PerPage int  `query:"perPage"`
 	}
-	return func(c echo.Context) error {
-		rPage := c.QueryParam("page")
+	return func(e *core.RequestEvent) error {
+		info, err := e.RequestInfo()
+		if err != nil {
+			return err
+		}
+		rPage := info.Query["page"]
 		qPage, err := strconv.Atoi(rPage)
 		if err != nil {
 			if rPage != "" {
-				return handleError(app, e, c, errors.Join(err, invalidRequestError))
+				return handleError(app, e, errors.Join(err, invalidRequestError))
 			} else {
 				qPage = 0
 			}
 		}
-		rPerPage := c.QueryParam("perPage")
+		rPerPage := info.Query["perPage"]
 		qPerPage, err := strconv.Atoi(rPerPage)
 		if err != nil {
 			if rPerPage != "" {
-				return handleError(app, e, c, errors.Join(err, invalidRequestError))
+				return handleError(app, e, errors.Join(err, invalidRequestError))
 			} else {
 				qPerPage = 0
 			}
@@ -152,22 +156,21 @@ func listRouteHandler[T comparable](
 		if listQueryForm.PerPage > 150 {
 			listQueryForm.PerPage = 150
 		}
-		expand, err := tools.ExtractExpandMap(c)
+		expand, err := tools.ExtractExpandMap(info)
 		if err != nil {
-			return handleError(app, e, c, errors.Join(err, invalidRequestError))
+			return handleError(app, e, errors.Join(err, invalidRequestError))
 		}
 		items, page, perPage, totalItems, totalPages, err := handler(
 			app,
 			e,
-			c,
 			listQueryForm.Page,
 			listQueryForm.PerPage,
 			expand,
 		)
 		if err != nil {
-			return handleError(app, e, c, err)
+			return handleError(app, e, err)
 		}
-		return c.JSON(
+		return e.JSON(
 			http.StatusOK,
 			listResponse[T]{
 				response: response{
@@ -187,17 +190,21 @@ func upsertRouteHandler[T comparable](
 	app *pocketbase.PocketBase,
 	e *core.ServeEvent,
 	handler upsertHandlerFunction[T],
-) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		expand, err := tools.ExtractExpandMap(c)
+) handlerFunc {
+	return func(e *core.RequestEvent) error {
+		info, err := e.RequestInfo()
 		if err != nil {
-			return handleError(app, e, c, errors.Join(err, invalidRequestError))
+			return err
 		}
-		r, err := handler(app, e, c, expand)
+		expand, err := tools.ExtractExpandMap(info)
 		if err != nil {
-			return handleError(app, e, c, err)
+			return handleError(app, e, errors.Join(err, invalidRequestError))
 		}
-		return c.JSON(
+		r, err := handler(app, e, expand)
+		if err != nil {
+			return handleError(app, e, err)
+		}
+		return e.JSON(
 			http.StatusOK,
 			upsertResponse[T]{
 				response: response{
@@ -213,17 +220,21 @@ func bulkUpsertRouteHandler[T comparable](
 	app *pocketbase.PocketBase,
 	e *core.ServeEvent,
 	handler bulkUpsertHandlerFunction[T],
-) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		expand, err := tools.ExtractExpandMap(c)
+) handlerFunc {
+	return func(e *core.RequestEvent) error {
+		info, err := e.RequestInfo()
 		if err != nil {
-			return handleError(app, e, c, errors.Join(err, invalidRequestError))
+			return err
 		}
-		r, err := handler(app, e, c, expand)
+		expand, err := tools.ExtractExpandMap(info)
 		if err != nil {
-			return handleError(app, e, c, err)
+			return handleError(app, e, errors.Join(err, invalidRequestError))
 		}
-		return c.JSON(
+		r, err := handler(app, e, expand)
+		if err != nil {
+			return handleError(app, e, err)
+		}
+		return e.JSON(
 			http.StatusOK,
 			bulkUpsertResponse[T]{
 				response: response{
@@ -239,13 +250,13 @@ func deleteRouteHandler(
 	app *pocketbase.PocketBase,
 	e *core.ServeEvent,
 	handler deleteHandlerFunction,
-) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		err := handler(app, e, c)
+) handlerFunc {
+	return func(e *core.RequestEvent) error {
+		err := handler(app, e)
 		if err != nil {
-			return handleError(app, e, c, err)
+			return handleError(app, e, err)
 		}
-		return c.JSON(
+		return e.JSON(
 			http.StatusOK,
 			response{
 				Success: true,

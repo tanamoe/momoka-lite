@@ -5,7 +5,6 @@ import (
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
-	m "github.com/pocketbase/pocketbase/models"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/tools"
 )
@@ -19,31 +18,35 @@ const (
 
 func registerAppendImageSecretHook(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	targetCollections := []string{"titles", "books", "publications", "bookDetails", "releaseDetails", "titleCovers"}
-	secret := context.ImagorSecret
+	secret := app.Store().Get(models.ImagorSecretKey).(string)
 
-	app.OnRecordViewRequest(targetCollections...).Add(func(e *core.RecordViewEvent) error {
-		return appendImageSecret(secret, e.Record)
+	app.OnRecordViewRequest(targetCollections...).BindFunc(func(e *core.RecordRequestEvent) error {
+		if err := appendImageSecret(secret, e.Record); err != nil {
+			return err
+		}
+		return e.Next()
 	})
 
-	app.OnRecordsListRequest(targetCollections...).Add(func(e *core.RecordsListEvent) error {
+	app.OnRecordsListRequest(targetCollections...).BindFunc(func(e *core.RecordsListRequestEvent) error {
 		for _, record := range e.Records {
 			if err := appendImageSecret(secret, record); err != nil {
 				return err
 			}
 		}
 
-		return nil
+		return e.Next()
 	})
 
 	return nil
 }
 
-func appendImageSecret(secret string, record *m.Record) error {
-	if _, exist := record.SchemaData()[imageCoversField]; exist {
-		return appendImageSliceSecret(secret, record)
+func appendImageSecret(secret string, record *core.Record) error {
+	if record.FieldsData() != nil {
+		if _, exist := record.FieldsData()[imageCoversField]; exist {
+			return appendImageSliceSecret(secret, record)
+		}
 	}
 
 	path := getCoverImagePath(record)
@@ -61,7 +64,7 @@ func appendImageSecret(secret string, record *m.Record) error {
 	return nil
 }
 
-func appendImageSliceSecret(secret string, record *m.Record) error {
+func appendImageSliceSecret(secret string, record *core.Record) error {
 	covers := record.GetStringSlice(imageCoversField)
 
 	var images []map[string]string
@@ -86,7 +89,7 @@ func appendImageSliceSecret(secret string, record *m.Record) error {
 //
 //	(https://github.com/pocketbase/pocketbase/discussions/1938#discussioncomment-5143723)
 //	we implement a temporary fix by removing the opening and ending double-quote.
-func getCoverImagePath(record *m.Record, originalCover ...string) string {
+func getCoverImagePath(record *core.Record, originalCover ...string) string {
 	cover := ""
 	if len(originalCover) <= 0 {
 		cover = record.GetString(imageCoverField)
@@ -97,8 +100,8 @@ func getCoverImagePath(record *m.Record, originalCover ...string) string {
 		return ""
 	}
 
-	collectionId := record.Collection().GetId()
-	id := record.GetId()
+	collectionId := record.Collection().Id
+	id := record.Id
 
 	if id := record.GetString(imageCoversCollectionField); id != "" {
 		collectionId = string(id[1 : len(id)-1])
@@ -111,7 +114,7 @@ func getCoverImagePath(record *m.Record, originalCover ...string) string {
 	return fmt.Sprintf("%s/%s/%s", collectionId, id, cover)
 }
 
-func appendImageSizeMetadata(secret string, record *m.Record) error {
+func appendImageSizeMetadata(secret string, record *core.Record) error {
 	covers := record.GetStringSlice(imageCoversField)
 
 	var images []map[string]string

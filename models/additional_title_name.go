@@ -4,15 +4,10 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
-var _ models.Model = (*AdditionalTitleName)(nil)
-
 type AdditionalTitleName struct {
-	models.BaseModel
-
+	Id       string `db:"id" json:"id"`
 	TitleId  string `db:"title" json:"titleId"`
 	Title    *Title `db:"-" json:"title,omitempty"`
 	Language string `db:"language" json:"language"`
@@ -23,13 +18,13 @@ func (m *AdditionalTitleName) TableName() string {
 	return "additionalTitleNames"
 }
 
-func AdditionalTitleNameQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&AdditionalTitleName{})
+func AdditionalTitleNameQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&AdditionalTitleName{}).TableName())
 }
 
-func FindAdditionalTitleNameById(dao *daos.Dao, id string) (*AdditionalTitleName, error) {
+func FindAdditionalTitleNameById(db dbx.Builder, id string) (*AdditionalTitleName, error) {
 	name := &AdditionalTitleName{}
-	err := AdditionalTitleNameQuery(dao).
+	err := AdditionalTitleNameQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(name)
@@ -42,18 +37,18 @@ func FindAdditionalTitleNameById(dao *daos.Dao, id string) (*AdditionalTitleName
 	return name, nil
 }
 
-func (m *AdditionalTitleName) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *AdditionalTitleName) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["title"]; exist {
-		title, err := FindTitleById(dao, m.TitleId)
+		title, err := FindTitleById(db, m.TitleId)
 		if err != nil {
 			return err
 		}
 		if title != nil {
-			if err := title.Expand(dao, e["title"]); err != nil {
+			if err := title.Expand(db, e["title"]); err != nil {
 				return err
 			}
 			m.Title = title

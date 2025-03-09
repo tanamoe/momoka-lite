@@ -4,8 +4,6 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
 type ReleaseStatus string
@@ -20,11 +18,8 @@ const (
 	ReleaseStatusCancelled          ReleaseStatus = "CANCELLED"
 )
 
-var _ models.Model = (*Release)(nil)
-
 type Release struct {
-	models.BaseModel
-
+	Id             string        `db:"id" json:"id"`
 	TitleId        string        `db:"title" json:"titleId"`
 	Title          *Title        `db:"-" json:"title,omitempty"`
 	Name           string        `db:"name" json:"name"`
@@ -48,13 +43,13 @@ func (m *Release) TableName() string {
 	return "releases"
 }
 
-func ReleaseQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Release{})
+func ReleaseQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Release{}).TableName())
 }
 
-func FindReleaseById(dao *daos.Dao, id string) (*Release, error) {
+func FindReleaseById(db dbx.Builder, id string) (*Release, error) {
 	release := &Release{}
-	err := ReleaseQuery(dao).
+	err := ReleaseQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(release)
@@ -67,18 +62,18 @@ func FindReleaseById(dao *daos.Dao, id string) (*Release, error) {
 	return release, nil
 }
 
-func (m *Release) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Release) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["title"]; exist {
-		title, err := FindTitleById(dao, m.TitleId)
+		title, err := FindTitleById(db, m.TitleId)
 		if err != nil {
 			return err
 		}
 		if title != nil {
-			if err := title.Expand(dao, e["title"]); err != nil {
+			if err := title.Expand(db, e["title"]); err != nil {
 				return err
 			}
 			m.Title = title
@@ -86,12 +81,12 @@ func (m *Release) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["publisher"]; exist {
-		publisher, err := FindPublisherById(dao, m.PublisherId)
+		publisher, err := FindPublisherById(db, m.PublisherId)
 		if err != nil {
 			return err
 		}
 		if publisher != nil {
-			if err := publisher.Expand(dao, e["publisher"]); err != nil {
+			if err := publisher.Expand(db, e["publisher"]); err != nil {
 				return err
 			}
 			m.Publisher = publisher
@@ -99,12 +94,12 @@ func (m *Release) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["partner"]; exist {
-		partner, err := FindPublisherById(dao, m.PartnerId)
+		partner, err := FindPublisherById(db, m.PartnerId)
 		if err != nil {
 			return err
 		}
 		if partner != nil {
-			if err := partner.Expand(dao, e["partner"]); err != nil {
+			if err := partner.Expand(db, e["partner"]); err != nil {
 				return err
 			}
 			m.Partner = partner
@@ -112,12 +107,12 @@ func (m *Release) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["front"]; exist {
-		front, err := FindAssetById(dao, m.FrontId)
+		front, err := FindAssetById(db, m.FrontId)
 		if err != nil {
 			return err
 		}
 		if front != nil {
-			if err := front.Expand(dao, e["front"]); err != nil {
+			if err := front.Expand(db, e["front"]); err != nil {
 				return err
 			}
 			m.Front = front
@@ -125,12 +120,12 @@ func (m *Release) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["banner"]; exist {
-		banner, err := FindAssetById(dao, m.BannerId)
+		banner, err := FindAssetById(db, m.BannerId)
 		if err != nil {
 			return err
 		}
 		if banner != nil {
-			if err := banner.Expand(dao, e["banner"]); err != nil {
+			if err := banner.Expand(db, e["banner"]); err != nil {
 				return err
 			}
 			m.Banner = banner
@@ -138,12 +133,12 @@ func (m *Release) Expand(dao *daos.Dao, e ExpandMap) error {
 	}
 
 	if _, exist := e["logo"]; exist {
-		logo, err := FindAssetById(dao, m.LogoId)
+		logo, err := FindAssetById(db, m.LogoId)
 		if err != nil {
 			return err
 		}
 		if logo != nil {
-			if err := logo.Expand(dao, e["logo"]); err != nil {
+			if err := logo.Expand(db, e["logo"]); err != nil {
 				return err
 			}
 			m.Logo = logo

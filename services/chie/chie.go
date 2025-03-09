@@ -5,7 +5,6 @@ import (
 
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/pocketbase/pocketbase"
-	"tana.moe/momoka-lite/models"
 )
 
 type QueryKind string
@@ -75,28 +74,28 @@ func groupTermQuery[T comparable](qg QueryGroup[T], fields ...string) query.Quer
 	return groupQuery(qg, queries)
 }
 
-func StartService(app *pocketbase.PocketBase, context *models.AppContext) error {
-	context.Logger.Info("Indexing collections...")
-	if err := startIndexing(app, context); err != nil {
+func StartService(app *pocketbase.PocketBase) error {
+	app.Logger().Info("Indexing collections...")
+	if err := startIndexing(app); err != nil {
 		return err
 	}
-	context.Logger.Info("Collections indexing completed.")
-	context.Logger.Info("Starting chie signal gateways...")
-	if err := startTitleSearchService(app, context); err != nil {
+	app.Logger().Info("Collections indexing completed.")
+	app.Logger().Info("Starting chie signal gateways...")
+	if err := startTitleSearchService(app); err != nil {
 		return err
 	}
-	if err := startReleaseSearchService(app, context); err != nil {
+	if err := startReleaseSearchService(app); err != nil {
 		return err
 	}
-	context.Logger.Info("Chie signal gateways is now ready.")
+	app.Logger().Info("Chie signal gateways is now ready.")
 	return nil
 }
 
-func startIndexing(app *pocketbase.PocketBase, context *models.AppContext) error {
-	if err := indexTitleCollection(app, context); err != nil {
+func startIndexing(app *pocketbase.PocketBase) error {
+	if err := indexTitleCollection(app); err != nil {
 		return err
 	}
-	if err := indexReleaseCollection(app, context); err != nil {
+	if err := indexReleaseCollection(app); err != nil {
 		return err
 	}
 	return nil

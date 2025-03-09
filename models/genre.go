@@ -4,15 +4,10 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
-var _ models.Model = (*Genre)(nil)
-
 type Genre struct {
-	models.BaseModel
-
+	Id   string `db:"id" json:"id"`
 	Name string `db:"name" json:"name"`
 	Slug string `db:"slug" json:"slug"`
 }
@@ -21,13 +16,13 @@ func (m *Genre) TableName() string {
 	return "genres"
 }
 
-func GenreQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Genre{})
+func GenreQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Genre{}).TableName())
 }
 
-func FindGenreById(dao *daos.Dao, id string) (*Genre, error) {
+func FindGenreById(db dbx.Builder, id string) (*Genre, error) {
 	genre := &Genre{}
-	err := GenreQuery(dao).
+	err := GenreQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(genre)
@@ -40,6 +35,6 @@ func FindGenreById(dao *daos.Dao, id string) (*Genre, error) {
 	return genre, nil
 }
 
-func (m *Genre) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Genre) Expand(db dbx.Builder, e ExpandMap) error {
 	return nil
 }

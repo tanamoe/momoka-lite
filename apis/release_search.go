@@ -4,10 +4,8 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/services/chie"
@@ -20,15 +18,13 @@ func registerReleaseSearchRoute(
 	core.Router.POST(
 		"/api/collections/releases/browse",
 		listRouteHandler(app, core, onReleaseSearchRequest),
-		apis.ActivityLogger(app),
 	)
 	return nil
 }
 
 func onReleaseSearchRequest(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	page uint,
 	perPage int,
 	expand models.ExpandMap,
@@ -37,7 +33,7 @@ func onReleaseSearchRequest(
 		perPage = 25
 	}
 	req := chie.ReleaseSearchRequest{}
-	if err := c.Bind(&req); err != nil {
+	if err := e.BindBody(&req); err != nil {
 		return nil, page, perPage, 0, 0, errors.Join(invalidRequestError, err)
 	}
 	req.Offset = int(page-1) * perPage
@@ -55,7 +51,7 @@ func onReleaseSearchRequest(
 		releaseIds = append(releaseIds, releaseId)
 	}
 	unsortedItems := []*models.Release{}
-	err = models.ReleaseQuery(app.Dao()).Where(dbx.HashExp{"id": releaseIds}).All(&unsortedItems)
+	err = models.ReleaseQuery(app.DB()).Where(dbx.HashExp{"id": releaseIds}).All(&unsortedItems)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, page, perPage, uint(res.TotalItems), totalPages, nil
 	}
@@ -67,7 +63,7 @@ func onReleaseSearchRequest(
 	}
 	for _, itemId := range res.Items {
 		if item, exist := releasesMap[itemId]; exist {
-			if err := item.Expand(app.Dao(), expand); err != nil {
+			if err := item.Expand(app.DB(), expand); err != nil {
 				return nil, page, perPage, 0, 0, err
 			}
 			items = append(items, item)

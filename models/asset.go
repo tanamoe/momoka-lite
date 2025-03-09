@@ -4,37 +4,32 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-var _ models.Model = (*Asset)(nil)
-
 type Asset struct {
-	models.BaseModel
-
-	BookId       string        `db:"book" json:"bookId"`
-	Book         *Book         `db:"-" json:"book,omitempty"`
-	Description  string        `db:"description" json:"description"`
-	TypeId       string        `db:"type" json:"typeId"`
-	Type         *AssetType    `db:"-" json:"type,omitempty"`
-	Image        string        `db:"image" json:"image"`
-	ResizedImage types.JsonMap `db:"resizedImage" json:"resizedImage"`
-	Priority     int           `db:"priority" json:"priority"`
+	Id           string                `db:"id" json:"id"`
+	BookId       string                `db:"book" json:"bookId"`
+	Book         *Book                 `db:"-" json:"book,omitempty"`
+	Description  string                `db:"description" json:"description"`
+	TypeId       string                `db:"type" json:"typeId"`
+	Type         *AssetType            `db:"-" json:"type,omitempty"`
+	Image        string                `db:"image" json:"image"`
+	ResizedImage types.JSONMap[string] `db:"resizedImage" json:"resizedImage"`
+	Priority     int                   `db:"priority" json:"priority"`
 }
 
 func (m *Asset) TableName() string {
 	return "assets"
 }
 
-func AssetQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Asset{})
+func AssetQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Asset{}).TableName())
 }
 
-func FindAssetById(dao *daos.Dao, id string) (*Asset, error) {
+func FindAssetById(db dbx.Builder, id string) (*Asset, error) {
 	asset := &Asset{}
-	err := AssetQuery(dao).
+	err := AssetQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(asset)
@@ -47,6 +42,6 @@ func FindAssetById(dao *daos.Dao, id string) (*Asset, error) {
 	return asset, nil
 }
 
-func (m *Asset) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Asset) Expand(db dbx.Builder, e ExpandMap) error {
 	return nil
 }

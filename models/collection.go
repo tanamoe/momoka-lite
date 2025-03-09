@@ -5,11 +5,8 @@ import (
 	"errors"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
+	"github.com/pocketbase/pocketbase/core"
 )
-
-var _ models.Model = (*Collection)(nil)
 
 type CollectionVisibility = string
 
@@ -20,8 +17,7 @@ const (
 )
 
 type Collection struct {
-	models.BaseModel
-
+	Id          string               `db:"id" json:"id"`
 	OwnerId     string               `db:"owner" json:"ownerId"`
 	Owner       *User                `db:"-" json:"owner,omitempty"`
 	Visibility  CollectionVisibility `db:"visibility" json:"visibility"`
@@ -35,13 +31,13 @@ func (m *Collection) TableName() string {
 	return "collections"
 }
 
-func CollectionQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Collection{})
+func CollectionQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Collection{}).TableName())
 }
 
-func FindCollectionById(dao *daos.Dao, id string) (*Collection, error) {
+func FindCollectionById(db dbx.Builder, id string) (*Collection, error) {
 	collection := &Collection{}
-	err := CollectionQuery(dao).
+	err := CollectionQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(collection)
@@ -54,18 +50,18 @@ func FindCollectionById(dao *daos.Dao, id string) (*Collection, error) {
 	return collection, nil
 }
 
-func (m *Collection) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Collection) Expand(db dbx.Builder, e ExpandMap) error {
 	if e == nil {
 		return nil
 	}
 
 	if _, exist := e["owner"]; exist {
-		owner, err := FindUserById(dao, m.OwnerId)
+		owner, err := FindUserById(db, m.OwnerId)
 		if err != nil {
 			return err
 		}
 		if owner != nil {
-			if err := owner.Expand(dao, e["owner"]); err != nil {
+			if err := owner.Expand(db, e["owner"]); err != nil {
 				return err
 			}
 			m.Owner = owner
@@ -75,9 +71,9 @@ func (m *Collection) Expand(dao *daos.Dao, e ExpandMap) error {
 	return nil
 }
 
-func FindUserDefaultCollection(dao *daos.Dao, userId string) (*Collection, error) {
+func FindUserDefaultCollection(db dbx.Builder, userId string) (*Collection, error) {
 	collection := &Collection{}
-	err := CollectionQuery(dao).
+	err := CollectionQuery(db).
 		AndWhere(dbx.HashExp{
 			"owner":   userId,
 			"default": true,
@@ -93,7 +89,7 @@ func FindUserDefaultCollection(dao *daos.Dao, userId string) (*Collection, error
 	return collection, nil
 }
 
-func (m *Collection) userHadRole(dao *daos.Dao, userId string, roles ...CollectionAccessRole) (bool, error) {
+func (m *Collection) userHadRole(db dbx.Builder, userId string, roles ...CollectionAccessRole) (bool, error) {
 	type countData struct {
 		Count uint `db:"count"`
 	}
@@ -104,7 +100,7 @@ func (m *Collection) userHadRole(dao *daos.Dao, userId string, roles ...Collecti
 	for _, role := range roles {
 		rolesAsAny = append(rolesAsAny, role)
 	}
-	err := CollectionMemberQuery(dao).
+	err := db.Select("*").
 		Select("COUNT(id) AS count").
 		AndWhere(dbx.HashExp{
 			"collection": m.Id,
@@ -115,38 +111,39 @@ func (m *Collection) userHadRole(dao *daos.Dao, userId string, roles ...Collecti
 	return count.Count > 0, err
 }
 
-func (m *Collection) CanBeAccessedBy(dao *daos.Dao, userId string) (bool, error) {
+func (m *Collection) CanBeAccessedBy(db dbx.Builder, userId string) (bool, error) {
 	if m.OwnerId == userId {
 		return true, nil
 	}
 	if m.Visibility != CollectionPrivate {
 		return true, nil
 	}
-	return m.userHadRole(dao, userId, CollectionMemberRole, CollectionEditorRole)
+	return m.userHadRole(db, userId, CollectionMemberRole, CollectionEditorRole)
 }
 
-func (m *Collection) CanBeEditedBy(dao *daos.Dao, userId string) (bool, error) {
+func (m *Collection) CanBeEditedBy(db dbx.Builder, userId string) (bool, error) {
 	if m.OwnerId == userId {
 		return true, nil
 	}
-	return m.userHadRole(dao, userId, CollectionEditorRole)
+	return m.userHadRole(db, userId, CollectionEditorRole)
 }
 
-func (m *Collection) HadMember(dao *daos.Dao, userId string) (bool, error) {
+func (m *Collection) HadMember(db dbx.Builder, userId string) (bool, error) {
 	if m.OwnerId == userId {
 		return true, nil
 	}
-	return m.userHadRole(dao, userId, CollectionMemberRole, CollectionEditorRole)
+	return m.userHadRole(db, userId, CollectionMemberRole, CollectionEditorRole)
 }
 
-func (m *Collection) AddMember(dao *daos.Dao, userId string, role CollectionAccessRole) error {
+func (m *Collection) AddMember(db dbx.Builder, userId string, role CollectionAccessRole) error {
 	member := &CollectionMember{
+		Id:           core.GenerateDefaultRandomId(),
 		CollectionId: m.Id,
 		UserId:       userId,
 		Role:         role,
 	}
 	existMember := &CollectionMember{}
-	err := CollectionMemberQuery(dao).
+	err := CollectionMemberQuery(db).
 		AndWhere(dbx.HashExp{
 			"collection": m.Id,
 			"user":       userId,
@@ -159,7 +156,7 @@ func (m *Collection) AddMember(dao *daos.Dao, userId string, role CollectionAcce
 		member = existMember
 		member.Role = role
 	}
-	if err := dao.Save(member); err != nil {
+	if err := db.Model(member).Insert(); err != nil {
 		return err
 	}
 	return nil

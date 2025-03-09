@@ -3,18 +3,18 @@ package hooks
 import (
 	"encoding/json"
 
-	"github.com/pocketbase/pocketbase/models"
+	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-func appendMetadata(m *models.Record, data map[string]interface{}) {
+func appendMetadata(m *core.Record, data map[string]interface{}) {
 	rawJson := m.Get("metadata")
 	if rawJson == nil {
-		rawJson = types.JsonRaw{}
+		rawJson = types.JSONRaw{}
 	}
 	metadata := map[string]interface{}{}
-	if len(rawJson.(types.JsonRaw)) > 2 {
-		if err := json.Unmarshal(rawJson.(types.JsonRaw), &metadata); err != nil {
+	if len(rawJson.(types.JSONRaw)) > 2 {
+		if err := json.Unmarshal(rawJson.(types.JSONRaw), &metadata); err != nil {
 			panic(err)
 		}
 		if metadata == nil {

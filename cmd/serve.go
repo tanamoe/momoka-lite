@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
@@ -28,28 +28,27 @@ func main() {
 
 	app := pocketbase.New()
 
-	context, err := models.NewContext()
-	if err != nil {
+	if err := initStorage(app); err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	if err := registerMiddleware(app, context); err != nil {
+	if err := registerMiddleware(app); err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	if err := registerApis(app, context); err != nil {
+	if err := registerApis(app); err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	if err := hooks.RegisterHooks(app, context); err != nil {
+	if err := hooks.RegisterHooks(app); err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	if err := startServices(app, context); err != nil {
+	if err := startServices(app); err != nil {
 		log.Fatal(err)
 		return
 	}
@@ -58,11 +57,11 @@ func main() {
 		Automigrate: false,
 	})
 
-	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		if err := refreshAppState(app, context); err != nil {
+	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
+		if err := refreshAppState(app); err != nil {
 			panic(err)
 		}
-		return nil
+		return e.Next()
 	})
 
 	if err := app.Start(); err != nil {
@@ -71,44 +70,36 @@ func main() {
 	}
 }
 
+func initStorage(
+	app *pocketbase.PocketBase,
+) error {
+	app.Store().Set(models.ImagorSecretKey, os.Getenv(models.ImagorSecretKey))
+	return nil
+}
+
 func registerMiddleware(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
-	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		e.Router.Use(appendAppContext(context))
-		return nil
+	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
+		return e.Next()
 	})
 	return nil
 }
 
 func registerApis(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
-	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
 		apis.RegisterApis(app, e)
-		return nil
+		return e.Next()
 	})
 	return nil
 }
 
-func appendAppContext(context *models.AppContext) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			return next(&models.EchoContext{
-				Context:    c,
-				AppContext: context,
-			})
-		}
-	}
-}
-
 func startServices(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
-	if err := services.Start(app, context); err != nil {
+	if err := services.Start(app); err != nil {
 		return err
 	}
 	return nil
@@ -116,15 +107,14 @@ func startServices(
 
 func refreshAppState(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
-	dao := app.Dao()
+	db := app.DB()
 	states := map[string]string{
-		models.ImagorSecretStateId:      imagorSecretState(context),
+		models.ImagorSecretStateId:      imagorSecretState(app),
 		models.AssetImageResizedStateId: "1",
 	}
 	for id, stateValue := range states {
-		state, err := models.FindStateById(dao, id)
+		state, err := models.FindStateById(db, id)
 		if err != nil {
 			return err
 		}
@@ -135,7 +125,7 @@ func refreshAppState(
 			continue
 		}
 		state.Value = stateValue
-		if err := dao.Save(state); err != nil {
+		if err := db.Model(state).Update(); err != nil {
 			return err
 		}
 	}
@@ -143,10 +133,11 @@ func refreshAppState(
 }
 
 func imagorSecretState(
-	context *models.AppContext,
+	app *pocketbase.PocketBase,
 ) string {
-	if context.ImagorSecret == "" {
+	secret := app.Store().Get(models.ImagorSecretKey).(string)
+	if secret == "" {
 		return ""
 	}
-	return tools.SHA256(context.ImagorSecret)
+	return tools.SHA256(secret)
 }

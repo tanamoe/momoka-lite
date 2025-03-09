@@ -2,50 +2,48 @@ package hooks
 
 import (
 	"github.com/pocketbase/pocketbase"
-	"tana.moe/momoka-lite/models"
 )
 
 func RegisterHooks(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
-	if err := registerAppendImageSecretHook(app, context); err != nil {
+	if err := registerAppendImageSecretHook(app); err != nil {
 		return err
 	}
 
-	if err := registerOnUpdateCollectionOwner(app, context); err != nil {
+	if err := registerOnUpdateCollectionOwner(app); err != nil {
 		return err
 	}
 
-	if err := registerOnCollectionOwnerRemove(app, context); err != nil {
+	if err := registerOnCollectionOwnerRemove(app); err != nil {
 		return err
 	}
 
-	if err := registerOnUpdateDefaultCollection(app, context); err != nil {
+	if err := registerOnUpdateDefaultCollection(app); err != nil {
 		return err
 	}
 
-	if err := registerAppendInCollectionsMetadataHook(app, context); err != nil {
+	if err := registerAppendInCollectionsMetadataHook(app); err != nil {
 		return err
 	}
 
-	if err := registerUpdateTitleSlugHook(app, context); err != nil {
+	if err := registerUpdateTitleSlugHook(app); err != nil {
 		return err
 	}
 
-	if err := registerOnTitleIndexShouldChangeHook(app, context); err != nil {
+	if err := registerOnTitleIndexShouldChangeHook(app); err != nil {
 		return err
 	}
 
-	if err := registerOnReleaseIndexShouldChangeHook(app, context); err != nil {
+	if err := registerOnReleaseIndexShouldChangeHook(app); err != nil {
 		return err
 	}
 
-	if err := registerResizeAssetImageHook(app, context); err != nil {
+	if err := registerResizeAssetImageHook(app); err != nil {
 		return err
 	}
 
-	if err := registerPublicationUpdateDefaultBook(app, context); err != nil {
+	if err := registerPublicationUpdateDefaultBook(app); err != nil {
 		return err
 	}
 
