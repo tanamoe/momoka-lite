@@ -19,7 +19,7 @@ func registerUserCollectionsRoute(
 		listRouteHandler(app, core, onRequestUserCollections),
 	)
 	core.Router.GET(
-		"/api/user-collections/:userId",
+		"/api/user-collections/{userId}",
 		listRouteHandler(app, core, onRequestUserCollections),
 	)
 	return nil

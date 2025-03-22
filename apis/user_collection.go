@@ -20,31 +20,31 @@ func registerUserCollectionRoute(
 		upsertRouteHandler(app, core, onCollectionUpsertRequest),
 	)
 	core.Router.GET(
-		"/api/user-collection/:collectionId",
+		"/api/user-collection/{collectionId}",
 		viewRouteHandler(app, core, onRequestUserCollectionById),
 	)
 	core.Router.POST(
-		"/api/user-collection/:collectionId",
+		"/api/user-collection/{collectionId}",
 		upsertRouteHandler(app, core, onCollectionUpsertRequest),
 	)
 	core.Router.DELETE(
-		"/api/user-collection/:collectionId",
+		"/api/user-collection/{collectionId}",
 		deleteRouteHandler(app, core, onDeleteCollectionRequest),
 	)
 	core.Router.GET(
-		"/api/user-collection/:collectionId/books",
+		"/api/user-collection/{collectionId}/books",
 		listRouteHandler(app, core, onRequestBooksInCollection),
 	)
 	core.Router.POST(
-		"/api/user-collection/:collectionId/books",
+		"/api/user-collection/{collectionId}/books",
 		upsertRouteHandler(app, core, onUpsertBookToCollectionRequest),
 	)
 	core.Router.DELETE(
-		"/api/user-collection/:collectionId/books/:bookId",
+		"/api/user-collection/{collectionId}/books/{bookId}",
 		deleteRouteHandler(app, core, onDeleteBookFromCollectionRequest),
 	)
 	core.Router.GET(
-		"/api/user-collection/:collectionId/members",
+		"/api/user-collection/{collectionId}/members",
 		listRouteHandler(app, core, onRequestMembersInCollection),
 	)
 	return nil
