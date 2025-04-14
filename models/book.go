@@ -61,7 +61,7 @@ func (m *Book) GetRoot(db dbx.Builder) (*Book, error) {
 
 func (m *Book) GetDefaultAsset(db dbx.Builder) (*Asset, error) {
 	asset := &Asset{}
-	err := BookQuery(db).
+	err := AssetQuery(db).
 		AndWhere(dbx.HashExp{
 			"book": m.Id,
 			"type": AssetTypeCoverID,
