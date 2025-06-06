@@ -2,7 +2,7 @@ module tana.moe/momoka-lite
 
 go 1.22
 
-toolchain go1.24.0
+toolchain go1.24.4
 
 require (
 	github.com/blevesearch/bleve/v2 v2.4.4
