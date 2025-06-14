@@ -4,14 +4,10 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/forms"
-	pmodels "github.com/pocketbase/pocketbase/models"
 	"tana.moe/momoka-lite/models"
 )
 
@@ -22,80 +18,73 @@ func registerUserCollectionRoute(
 	core.Router.POST(
 		"/api/user-collection",
 		upsertRouteHandler(app, core, onCollectionUpsertRequest),
-		apis.ActivityLogger(app),
 	)
 	core.Router.GET(
-		"/api/user-collection/:collectionId",
+		"/api/user-collection/{collectionId}",
 		viewRouteHandler(app, core, onRequestUserCollectionById),
-		apis.ActivityLogger(app),
 	)
 	core.Router.POST(
-		"/api/user-collection/:collectionId",
+		"/api/user-collection/{collectionId}",
 		upsertRouteHandler(app, core, onCollectionUpsertRequest),
-		apis.ActivityLogger(app),
 	)
 	core.Router.DELETE(
-		"/api/user-collection/:collectionId",
+		"/api/user-collection/{collectionId}",
 		deleteRouteHandler(app, core, onDeleteCollectionRequest),
-		apis.ActivityLogger(app),
 	)
 	core.Router.GET(
-		"/api/user-collection/:collectionId/books",
+		"/api/user-collection/{collectionId}/books",
 		listRouteHandler(app, core, onRequestBooksInCollection),
-		apis.ActivityLogger(app),
 	)
 	core.Router.POST(
-		"/api/user-collection/:collectionId/books",
+		"/api/user-collection/{collectionId}/books",
 		upsertRouteHandler(app, core, onUpsertBookToCollectionRequest),
-		apis.ActivityLogger(app),
 	)
 	core.Router.DELETE(
-		"/api/user-collection/:collectionId/books/:bookId",
+		"/api/user-collection/{collectionId}/books/{bookId}",
 		deleteRouteHandler(app, core, onDeleteBookFromCollectionRequest),
-		apis.ActivityLogger(app),
 	)
 	core.Router.GET(
-		"/api/user-collection/:collectionId/members",
+		"/api/user-collection/{collectionId}/members",
 		listRouteHandler(app, core, onRequestMembersInCollection),
-		apis.ActivityLogger(app),
 	)
 	return nil
 }
 
 func onRequestUserCollectionById(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	expand models.ExpandMap,
 ) (item *models.Collection, err error) {
-	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	collectionId := c.PathParam("collectionId")
-	if collectionId == "default" {
-		return onRequestUserDefaultCollection(app, e, c, expand)
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil, err
 	}
-	collection, err := models.FindCollectionById(app.Dao(), collectionId)
+	collectionId := e.Request.PathValue("collectionId")
+	if collectionId == "default" {
+		return onRequestUserDefaultCollection(app, e, expand)
+	}
+	collection, err := models.FindCollectionById(app.DB(), collectionId)
 	if err != nil {
 		return nil, err
 	}
 	if collection == nil {
 		return nil, notFoundError
 	}
-	if admin != nil {
+	if (info.Auth != nil) && (info.Auth.IsSuperuser()) {
 		return collection, nil
 	}
 	userId := ""
-	if record != nil {
-		userId = record.Id
+	if info.Auth != nil {
+		userId = info.Auth.Id
 	}
-	canBeAccessed, err := collection.CanBeAccessedBy(app.Dao(), userId)
+	canBeAccessed, err := collection.CanBeAccessedBy(app.DB(), userId)
 	if err != nil {
 		return nil, err
 	}
 	if !canBeAccessed {
 		return nil, notFoundError
 	}
-	if err := collection.Expand(app.Dao(), expand); err != nil {
+	if err := collection.Expand(app.DB(), expand); err != nil {
 		return nil, err
 	}
 	return collection, nil
@@ -103,22 +92,24 @@ func onRequestUserCollectionById(
 
 func onRequestUserDefaultCollection(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	expand models.ExpandMap,
 ) (item *models.Collection, err error) {
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	if record == nil {
-		return nil, unauthorizedError
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil, err
 	}
-	collection, err := models.FindUserDefaultCollection(app.Dao(), record.Id)
+	if info.Auth == nil {
+		return nil, notFoundError
+	}
+	collection, err := models.FindUserDefaultCollection(app.DB(), info.Auth.Id)
 	if err != nil {
 		return nil, err
 	}
 	if collection == nil {
 		return nil, notFoundError
 	}
-	if err := collection.Expand(app.Dao(), expand); err != nil {
+	if err := collection.Expand(app.DB(), expand); err != nil {
 		return nil, err
 	}
 	return collection, nil
@@ -126,16 +117,17 @@ func onRequestUserDefaultCollection(
 
 func onRequestBooksInCollection(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	page uint,
 	perPage int,
 	expand models.ExpandMap,
 ) (items []*models.CollectionBook, rpage uint, rperPage int, totalItems uint, totalPages uint, err error) {
-	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	collectionId := c.PathParam("collectionId")
-	collection, err := models.FindCollectionById(app.Dao(), collectionId)
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil, page, perPage, 0, 0, err
+	}
+	collectionId := e.Request.PathValue("collectionId")
+	collection, err := models.FindCollectionById(app.DB(), collectionId)
 	if perPage <= 0 {
 		perPage = 25
 	}
@@ -145,31 +137,32 @@ func onRequestBooksInCollection(
 	if collection == nil {
 		return nil, page, perPage, 0, 0, err
 	}
-	if admin != nil {
-		items, err = fetchBooksInCollection(app.Dao(), collection, page, perPage)
+	isAdmin := (info.Auth != nil) && (info.Auth.IsSuperuser())
+	if isAdmin {
+		items, err = fetchBooksInCollection(app.DB(), collection, page, perPage)
 	} else {
 		userId := ""
-		if record != nil {
-			userId = record.Id
+		if info.Auth != nil {
+			userId = info.Auth.Id
 		}
-		canBeAccessBy, err := collection.CanBeAccessedBy(app.Dao(), userId)
+		canBeAccessBy, err := collection.CanBeAccessedBy(app.DB(), userId)
 		if err != nil {
 			return nil, page, perPage, 0, 0, err
 		}
 		if !canBeAccessBy {
 			return nil, page, perPage, 0, 0, notFoundError
 		}
-		items, err = fetchBooksInCollection(app.Dao(), collection, page, perPage)
+		items, err = fetchBooksInCollection(app.DB(), collection, page, perPage)
 	}
 	if err != nil {
 		return nil, page, perPage, 0, 0, notFoundError
 	}
-	totalItems, err = countBooksInCollection(app.Dao(), collection)
+	totalItems, err = countBooksInCollection(app.DB(), collection)
 	if err != nil {
 		return nil, page, perPage, 0, 0, err
 	}
 	for _, item := range items {
-		if err := item.Expand(app.Dao(), expand); err != nil {
+		if err := item.Expand(app.DB(), expand); err != nil {
 			return nil, page, perPage, 0, 0, err
 		}
 	}
@@ -179,22 +172,23 @@ func onRequestBooksInCollection(
 
 func onCollectionUpsertRequest(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	expand models.ExpandMap,
 ) (item *models.Collection, err error) {
 	item = &models.Collection{}
-	if err = c.Bind(item); err != nil {
+	if err = e.BindBody(item); err != nil {
 		return nil, errors.Join(invalidRequestError, err)
 	}
-	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	if (admin == nil) && (record == nil) {
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil, err
+	}
+	if info.Auth == nil {
 		return nil, unauthorizedError
 	}
-	item.Id = c.PathParam("collectionId")
-	if (item.Id != "") && (admin == nil) {
-		canEditCollection, err := item.CanBeEditedBy(app.Dao(), record.Id)
+	item.Id = e.Request.PathValue("collectionId")
+	if (item.Id != "") && (!info.Auth.IsSuperuser()) {
+		canEditCollection, err := item.CanBeEditedBy(app.DB(), info.Auth.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +196,7 @@ func onCollectionUpsertRequest(
 			if item.Visibility == models.CollectionPublic {
 				return nil, forbiddenError
 			}
-			isMember, err := item.HadMember(app.Dao(), record.Id)
+			isMember, err := item.HadMember(app.DB(), info.Auth.Id)
 			if err != nil {
 				return nil, err
 			}
@@ -212,8 +206,10 @@ func onCollectionUpsertRequest(
 			return nil, forbiddenError
 		}
 	}
+
+	// Update collection
 	if item.Id != "" {
-		originalCollection, err := models.FindCollectionById(app.Dao(), item.Id)
+		originalCollection, err := models.FindCollectionById(app.DB(), item.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -223,22 +219,27 @@ func onCollectionUpsertRequest(
 		if item.OwnerId == "" {
 			item.OwnerId = originalCollection.OwnerId
 		}
+
+		// Transfering ownership of the collection
+		// We do not expect non-admin user can assign it to be other's default collection
 		if item.OwnerId != originalCollection.OwnerId {
-			if (admin == nil) && (record != nil) && (record.Id != originalCollection.OwnerId) {
+			if (info.Auth != nil) && (info.Auth.Id != originalCollection.OwnerId) {
 				return nil, forbiddenError
 			}
-			newOwner, err := models.FindUserById(app.Dao(), item.OwnerId)
+			newOwner, err := models.FindUserById(app.DB(), item.OwnerId)
 			if err != nil {
 				return nil, err
 			}
 			if newOwner == nil {
 				return nil, invalidRequestError
 			}
-			if admin == nil {
+			if !info.Auth.IsSuperuser() {
 				item.Default = false
 			}
 		}
-		if (admin == nil) && (record.Id != originalCollection.OwnerId) {
+
+		// Either admin or the collection's owner can update collection order or default collection of user
+		if (!info.Auth.IsSuperuser()) && (info.Auth.Id != originalCollection.OwnerId) {
 			if item.Default != originalCollection.Default {
 				return nil, forbiddenError
 			}
@@ -246,29 +247,26 @@ func onCollectionUpsertRequest(
 				return nil, forbiddenError
 			}
 		}
-	} else {
-		if (admin != nil) && (item.OwnerId == "") {
+	} else { // Create collection
+		if (!info.Auth.IsSuperuser()) && (item.OwnerId == "") {
 			return nil, invalidRequestError
 		}
-		if record == nil {
-			return nil, unauthorizedError
-		}
-		if record != nil {
-			item.OwnerId = record.Id
+		if !info.Auth.IsSuperuser() {
+			item.OwnerId = info.Auth.Id
 		}
 	}
-	collection, err := app.Dao().FindCollectionByNameOrId((&models.Collection{}).TableName())
+	collection, err := app.FindCollectionByNameOrId((&models.Collection{}).TableName())
 	if err != nil {
 		return nil, err
 	}
-	r := pmodels.NewRecord(collection)
+	r := core.NewRecord(collection)
 	if item.Id != "" {
-		if r, err = app.Dao().FindRecordById((&models.Collection{}).TableName(), item.Id); err != nil {
+		if r, err = app.FindRecordById((&models.Collection{}).TableName(), item.Id); err != nil {
 			return nil, err
 		}
 	}
 	form := forms.NewRecordUpsert(app, r)
-	form.LoadData(map[string]any{
+	form.Load(map[string]any{
 		"owner":       item.OwnerId,
 		"visibility":  item.Visibility,
 		"name":        item.Name,
@@ -279,13 +277,13 @@ func onCollectionUpsertRequest(
 	if err := form.Submit(); err != nil {
 		return nil, errors.Join(invalidRequestError, err)
 	}
-	if item, err = models.FindCollectionById(app.Dao(), r.Id); err != nil {
+	if item, err = models.FindCollectionById(app.DB(), r.Id); err != nil {
 		return nil, err
 	}
 	if item == nil {
 		return nil, errors.New("Upserted collection is not suppose to be nil.")
 	}
-	if err = item.Expand(app.Dao(), expand); err != nil {
+	if err = item.Expand(app.DB(), expand); err != nil {
 		return nil, err
 	}
 	return item, nil
@@ -293,25 +291,26 @@ func onCollectionUpsertRequest(
 
 func onDeleteCollectionRequest(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 ) error {
-	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	if (admin == nil) && (record == nil) {
+	info, err := e.RequestInfo()
+	if err != nil {
+		return err
+	}
+	if info.Auth != nil {
 		return unauthorizedError
 	}
-	collectionId := c.PathParam("collectionId")
-	collection, err := models.FindCollectionById(app.Dao(), collectionId)
+	collectionId := e.Request.PathValue("collectionId")
+	collection, err := models.FindCollectionById(app.DB(), collectionId)
 	if err != nil {
 		return err
 	}
 	if collection == nil {
 		return notFoundError
 	}
-	if admin == nil {
-		if collection.OwnerId != record.Id {
-			canAccessCollection, err := collection.CanBeAccessedBy(app.Dao(), record.Id)
+	if !info.Auth.IsSuperuser() {
+		if collection.OwnerId != info.Auth.Id {
+			canAccessCollection, err := collection.CanBeAccessedBy(app.DB(), info.Auth.Id)
 			if err != nil {
 				return err
 			}
@@ -321,9 +320,9 @@ func onDeleteCollectionRequest(
 			return forbiddenError
 		}
 	}
-	return app.Dao().WithoutHooks().RunInTransaction(func(dao *daos.Dao) error {
+	return app.UnsafeWithoutHooks().RunInTransaction(func(app core.App) error {
 		members := []*models.CollectionMember{}
-		err := models.CollectionMemberQuery(dao).
+		err := models.CollectionMemberQuery(app.DB()).
 			AndWhere(
 				dbx.HashExp{
 					"collection": collection.Id,
@@ -337,11 +336,11 @@ func onDeleteCollectionRequest(
 			return err
 		}
 		for _, member := range members {
-			if err := dao.Delete(member); err != nil {
+			if err := app.DB().Model(member).Delete(); err != nil {
 				return err
 			}
 		}
-		if err = dao.Delete(collection); err != nil {
+		if err = app.DB().Model(collection).Delete(); err != nil {
 			return err
 		}
 		return nil
@@ -350,16 +349,17 @@ func onDeleteCollectionRequest(
 
 func onRequestMembersInCollection(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	page uint,
 	perPage int,
 	expand models.ExpandMap,
 ) (items []*models.CollectionMember, rpage uint, rperPage int, totalItems uint, totalPages uint, err error) {
-	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	collectionId := c.PathParam("collectionId")
-	collection, err := models.FindCollectionById(app.Dao(), collectionId)
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil, page, perPage, 0, 0, err
+	}
+	collectionId := e.Request.PathValue("collectionId")
+	collection, err := models.FindCollectionById(app.DB(), collectionId)
 	if perPage <= 0 {
 		perPage = 25
 	}
@@ -369,31 +369,31 @@ func onRequestMembersInCollection(
 	if collection == nil {
 		return nil, page, perPage, 0, 0, err
 	}
-	if admin != nil {
-		items, err = fetchMembersInCollection(app.Dao(), collection, page, perPage)
+	if !info.Auth.IsSuperuser() {
+		items, err = fetchMembersInCollection(app.DB(), collection, page, perPage)
 	} else {
 		userId := ""
-		if record != nil {
-			userId = record.Id
+		if info.Auth != nil {
+			userId = info.Auth.Id
 		}
-		canBeAccessBy, err := collection.CanBeAccessedBy(app.Dao(), userId)
+		canBeAccessBy, err := collection.CanBeAccessedBy(app.DB(), userId)
 		if err != nil {
 			return nil, page, perPage, 0, 0, err
 		}
 		if !canBeAccessBy {
 			return nil, page, perPage, 0, 0, notFoundError
 		}
-		items, err = fetchMembersInCollection(app.Dao(), collection, page, perPage)
+		items, err = fetchMembersInCollection(app.DB(), collection, page, perPage)
 	}
 	if err != nil {
 		return nil, page, perPage, 0, 0, notFoundError
 	}
-	totalItems, err = countMembersInCollection(app.Dao(), collection)
+	totalItems, err = countMembersInCollection(app.DB(), collection)
 	if err != nil {
 		return nil, page, perPage, 0, 0, err
 	}
 	for _, item := range items {
-		if err := item.Expand(app.Dao(), expand); err != nil {
+		if err := item.Expand(app.DB(), expand); err != nil {
 			return nil, page, perPage, 0, 0, err
 		}
 	}
@@ -403,23 +403,24 @@ func onRequestMembersInCollection(
 
 func onUpsertBookToCollectionRequest(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	expand models.ExpandMap,
 ) (item *models.CollectionBook, err error) {
 	item = &models.CollectionBook{}
-	if err = c.Bind(&item); err != nil {
+	if err = e.BindBody(&item); err != nil {
 		return nil, errors.Join(invalidRequestError, err)
 	}
-	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	if (admin == nil) && (record == nil) {
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil, err
+	}
+	if info.Auth == nil {
 		return nil, unauthorizedError
 	}
-	item.CollectionId = c.PathParam("collectionId")
-	if err := item.Expand(app.Dao(), models.ExpandMap{
-		"collection": {},
-		"book":       {},
+	item.CollectionId = e.Request.PathValue("collectionId")
+	if err := item.Expand(app.DB(), models.ExpandMap{
+		"collection": nil,
+		"book":       nil,
 	}); err != nil {
 		return nil, err
 	}
@@ -429,8 +430,8 @@ func onUpsertBookToCollectionRequest(
 	if item.Book == nil {
 		return nil, invalidRequestError
 	}
-	if admin == nil {
-		canEditCollection, err := item.Collection.CanBeEditedBy(app.Dao(), record.Id)
+	if !info.Auth.IsSuperuser() {
+		canEditCollection, err := item.Collection.CanBeEditedBy(app.DB(), info.Auth.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -438,7 +439,7 @@ func onUpsertBookToCollectionRequest(
 			if item.Collection.Visibility == models.CollectionPublic {
 				return nil, forbiddenError
 			}
-			isMember, err := item.Collection.HadMember(app.Dao(), record.Id)
+			isMember, err := item.Collection.HadMember(app.DB(), info.Auth.Id)
 			if err != nil {
 				return nil, err
 			}
@@ -448,27 +449,27 @@ func onUpsertBookToCollectionRequest(
 			return nil, forbiddenError
 		}
 	}
-	existItem, err := fetchBookInCollection(app.Dao(), item.Collection, item.Book)
+	existItem, err := fetchBookInCollection(app.DB(), item.Collection, item.Book)
 	if err != nil {
 		return nil, err
 	}
 	if existItem != nil {
 		item.Id = existItem.Id
 	}
-	collection, err := app.Dao().FindCollectionByNameOrId(
+	collection, err := app.FindCollectionByNameOrId(
 		(&models.CollectionBook{}).TableName(),
 	)
 	if err != nil {
 		return nil, err
 	}
-	r := pmodels.NewRecord(collection)
+	r := core.NewRecord(collection)
 	if item.Id != "" {
-		if r, err = app.Dao().FindRecordById((&models.CollectionBook{}).TableName(), item.Id); err != nil {
+		if r, err = app.FindRecordById((&models.CollectionBook{}).TableName(), item.Id); err != nil {
 			return nil, err
 		}
 	}
 	form := forms.NewRecordUpsert(app, r)
-	form.LoadData(map[string]any{
+	form.Load(map[string]any{
 		"collection": item.CollectionId,
 		"book":       item.BookId,
 		"quantity":   item.Quantity,
@@ -478,14 +479,14 @@ func onUpsertBookToCollectionRequest(
 	if err = form.Submit(); err != nil {
 		return nil, errors.Join(invalidRequestError, err)
 	}
-	item, err = models.FindCollectionBookById(app.Dao(), r.Id)
+	item, err = models.FindCollectionBookById(app.DB(), r.Id)
 	if err != nil {
 		return nil, err
 	}
 	if item == nil {
 		return nil, errors.New("Upserted book to collection not supposed to be nil.")
 	}
-	if err = item.Expand(app.Dao(), expand); err != nil {
+	if err = item.Expand(app.DB(), expand); err != nil {
 		return nil, err
 	}
 	return item, nil
@@ -493,18 +494,19 @@ func onUpsertBookToCollectionRequest(
 
 func onDeleteBookFromCollectionRequest(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 ) error {
 	item := &models.CollectionBook{}
-	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	if (admin == nil) && (record == nil) {
+	info, err := e.RequestInfo()
+	if err != nil {
+		return err
+	}
+	if info.Auth == nil {
 		return unauthorizedError
 	}
-	item.CollectionId = c.PathParam("collectionId")
-	item.BookId = c.PathParam("bookId")
-	if err := item.Expand(app.Dao(), models.ExpandMap{
+	item.CollectionId = e.Request.PathValue("collectionId")
+	item.BookId = e.Request.PathValue("bookId")
+	if err := item.Expand(app.DB(), models.ExpandMap{
 		"collection": {},
 	}); err != nil {
 		return err
@@ -514,8 +516,8 @@ func onDeleteBookFromCollectionRequest(
 	}
 	item.Book = &models.Book{}
 	item.Book.Id = item.BookId
-	if admin == nil {
-		canEditCollection, err := item.Collection.CanBeEditedBy(app.Dao(), record.Id)
+	if !info.Auth.IsSuperuser() {
+		canEditCollection, err := item.Collection.CanBeEditedBy(app.DB(), info.Auth.Id)
 		if err != nil {
 			return err
 		}
@@ -523,7 +525,7 @@ func onDeleteBookFromCollectionRequest(
 			if item.Collection.Visibility == models.CollectionPublic {
 				return forbiddenError
 			}
-			isMember, err := item.Collection.HadMember(app.Dao(), record.Id)
+			isMember, err := item.Collection.HadMember(app.DB(), info.Auth.Id)
 			if err != nil {
 				return err
 			}
@@ -533,37 +535,37 @@ func onDeleteBookFromCollectionRequest(
 			return forbiddenError
 		}
 	}
-	existItem, err := fetchBookInCollection(app.Dao(), item.Collection, item.Book)
+	existItem, err := fetchBookInCollection(app.DB(), item.Collection, item.Book)
 	if err != nil {
 		return err
 	}
 	if existItem == nil {
 		return nil
 	}
-	if err = app.Dao().Delete(existItem); err != nil {
+	if err = app.DB().Model(existItem).Delete(); err != nil {
 		return err
 	}
 	return err
 }
 
 func booksInCollectionQuery(
-	dao *daos.Dao,
+	db dbx.Builder,
 	collection *models.Collection,
 ) *dbx.SelectQuery {
-	return models.CollectionBookQuery(dao).
+	return models.CollectionBookQuery(db).
 		AndWhere(dbx.HashExp{
 			"collection": collection.Id,
 		})
 }
 
 func fetchBooksInCollection(
-	dao *daos.Dao,
+	db dbx.Builder,
 	collection *models.Collection,
 	page uint,
 	perPage int,
 ) (items []*models.CollectionBook, err error) {
 	items = []*models.CollectionBook{}
-	err = booksInCollectionQuery(dao, collection).
+	err = booksInCollectionQuery(db, collection).
 		Limit(int64(perPage)).
 		Offset(int64(page-1) * int64(perPage)).
 		All(&items)
@@ -571,7 +573,7 @@ func fetchBooksInCollection(
 }
 
 func countBooksInCollection(
-	dao *daos.Dao,
+	db dbx.Builder,
 	collection *models.Collection,
 ) (count uint, err error) {
 	type countData struct {
@@ -580,19 +582,19 @@ func countBooksInCollection(
 	result := &countData{
 		Count: 0,
 	}
-	err = booksInCollectionQuery(dao, collection).
+	err = booksInCollectionQuery(db, collection).
 		Select("COUNT(id) AS count").
 		One(&result)
 	return result.Count, err
 }
 
 func fetchBookInCollection(
-	dao *daos.Dao,
+	db dbx.Builder,
 	collection *models.Collection,
 	book *models.Book,
 ) (item *models.CollectionBook, err error) {
 	item = &models.CollectionBook{}
-	err = booksInCollectionQuery(dao, collection).
+	err = booksInCollectionQuery(db, collection).
 		AndWhere(
 			dbx.HashExp{
 				"collection": collection.Id,
@@ -608,23 +610,23 @@ func fetchBookInCollection(
 }
 
 func membersInCollectionQuery(
-	dao *daos.Dao,
+	db dbx.Builder,
 	collection *models.Collection,
 ) *dbx.SelectQuery {
-	return models.CollectionMemberQuery(dao).
+	return models.CollectionMemberQuery(db).
 		AndWhere(dbx.HashExp{
 			"collection": collection.Id,
 		})
 }
 
 func fetchMembersInCollection(
-	dao *daos.Dao,
+	db dbx.Builder,
 	collection *models.Collection,
 	page uint,
 	perPage int,
 ) (items []*models.CollectionMember, err error) {
 	items = []*models.CollectionMember{}
-	err = membersInCollectionQuery(dao, collection).
+	err = membersInCollectionQuery(db, collection).
 		Limit(int64(perPage)).
 		Offset(int64(page-1) * int64(perPage)).
 		All(&items)
@@ -632,7 +634,7 @@ func fetchMembersInCollection(
 }
 
 func countMembersInCollection(
-	dao *daos.Dao,
+	db dbx.Builder,
 	collection *models.Collection,
 ) (count uint, err error) {
 	type countData struct {
@@ -641,7 +643,7 @@ func countMembersInCollection(
 	result := &countData{
 		Count: 0,
 	}
-	err = membersInCollectionQuery(dao, collection).
+	err = membersInCollectionQuery(db, collection).
 		Select("COUNT(id) AS count").
 		One(&result)
 	return result.Count, err

@@ -4,17 +4,12 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
-
-var _ models.Model = (*AssetType)(nil)
 
 const AssetTypeCoverID = "0000000000cover"
 
 type AssetType struct {
-	models.BaseModel
-
+	Id   string `db:"id" json:"id"`
 	Name string `db:"name" json:"name"`
 }
 
@@ -22,13 +17,13 @@ func (m *AssetType) TableName() string {
 	return "assetTypes"
 }
 
-func AssetTypeQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&AssetType{})
+func AssetTypeQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&AssetType{}).TableName())
 }
 
-func FindAssetTypeById(dao *daos.Dao, id string) (*AssetType, error) {
+func FindAssetTypeById(db dbx.Builder, id string) (*AssetType, error) {
 	assetType := &AssetType{}
-	err := AssetTypeQuery(dao).
+	err := AssetTypeQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(assetType)
@@ -41,6 +36,6 @@ func FindAssetTypeById(dao *daos.Dao, id string) (*AssetType, error) {
 	return assetType, nil
 }
 
-func (m *AssetType) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *AssetType) Expand(db dbx.Builder, e ExpandMap) error {
 	return nil
 }

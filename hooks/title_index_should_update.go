@@ -3,90 +3,115 @@ package hooks
 import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
-	pmodels "github.com/pocketbase/pocketbase/models"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/services/chie"
 )
 
 func registerOnTitleIndexShouldChangeHook(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	app.
-		OnModelAfterCreate((&models.Title{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
+		OnModelAfterCreateSuccess((&models.Title{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
 			title := &models.Title{}
-			title.Id = e.Model.GetId()
-			return updateTitleIndex(app, context, title)
+			title.Id = e.Model.PK().(string)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
-		OnModelAfterUpdate((&models.Title{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
+		OnModelAfterUpdateSuccess((&models.Title{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
 			title := &models.Title{}
-			title.Id = e.Model.GetId()
-			return updateTitleIndex(app, context, title)
+			title.Id = e.Model.PK().(string)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
-		OnModelAfterDelete((&models.Title{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
+		OnModelAfterDeleteSuccess((&models.Title{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
 			title := &models.Title{}
-			title.Id = e.Model.GetId()
-			return updateTitleIndex(app, context, title)
+			title.Id = e.Model.PK().(string)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
-		OnModelAfterCreate((&models.Work{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			work := e.Model.(*pmodels.Record)
+		OnModelAfterCreateSuccess((&models.Work{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			work := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = work.GetString("title")
-			return updateTitleIndex(app, context, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
-		OnModelAfterUpdate((&models.Work{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			work := e.Model.(*pmodels.Record)
+		OnModelAfterUpdateSuccess((&models.Work{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			work := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = work.GetString("title")
-			return updateTitleIndex(app, context, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
-		OnModelAfterDelete((&models.Work{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			work := e.Model.(*pmodels.Record)
+		OnModelAfterDeleteSuccess((&models.Work{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			work := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = work.GetString("title")
-			return updateTitleIndex(app, context, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 	app.
-		OnModelAfterCreate((&models.AdditionalTitleName{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			additionalName := e.Model.(*pmodels.Record)
+		OnModelAfterCreateSuccess((&models.AdditionalTitleName{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			additionalName := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = additionalName.GetString("title")
-			return updateTitleIndex(app, context, title)
-		})
-
-	app.
-		OnModelAfterUpdate((&models.AdditionalTitleName{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			additionalName := e.Model.(*pmodels.Record)
-			title := &models.Title{}
-			title.Id = additionalName.GetString("title")
-			return updateTitleIndex(app, context, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	app.
-		OnModelAfterDelete((&models.AdditionalTitleName{}).TableName()).
-		Add(func(e *core.ModelEvent) error {
-			additionalName := e.Model.(*pmodels.Record)
+		OnModelAfterUpdateSuccess((&models.AdditionalTitleName{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			additionalName := e.Model.(*core.Record)
 			title := &models.Title{}
 			title.Id = additionalName.GetString("title")
-			return updateTitleIndex(app, context, title)
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
+		})
+
+	app.
+		OnModelAfterDeleteSuccess((&models.AdditionalTitleName{}).TableName()).
+		BindFunc(func(e *core.ModelEvent) error {
+			additionalName := e.Model.(*core.Record)
+			title := &models.Title{}
+			title.Id = additionalName.GetString("title")
+			if err := updateTitleIndex(app, title); err != nil {
+				return err
+			}
+			return e.Next()
 		})
 
 	return nil
@@ -94,10 +119,9 @@ func registerOnTitleIndexShouldChangeHook(
 
 func updateTitleIndex(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 	title *models.Title,
 ) error {
-	if err := chie.UpdateTitleIndex(app.Dao(), title); err != nil {
+	if err := chie.UpdateTitleIndex(app.DB(), title); err != nil {
 		return err
 	}
 	return nil

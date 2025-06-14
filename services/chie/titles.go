@@ -11,7 +11,6 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/tools/types"
 	"tana.moe/momoka-lite/models"
 )
@@ -39,7 +38,7 @@ type titleIndex struct {
 	Tags           []string                `json:"tags" db:"-"`
 	Format         string                  `json:"format" db:"format"`
 	Demographic    string                  `json:"demographic" db:"demographic"`
-	Genres         types.JsonArray[string] `json:"genres" db:"genres"`
+	Genres         types.JSONArray[string] `json:"genres" db:"genres"`
 	Staffs         []string                `json:"staffs" db:"staffs"`
 	AdditionalName []string                `json:"additionalName" db:"additionalName"`
 	Created        string                  `json:"created" db:"created"`
@@ -52,7 +51,7 @@ type titleSearchSignal struct {
 }
 
 type titleUpdateSignal struct {
-	Dao   *daos.Dao
+	Db    dbx.Builder
 	Title *models.Title
 	Err   chan error
 }
@@ -63,7 +62,7 @@ var (
 	titleIndexMapping  bleve.Index
 )
 
-func indexTitleCollection(app *pocketbase.PocketBase, context *models.AppContext) error {
+func indexTitleCollection(app *pocketbase.PocketBase) error {
 	mapping := bleve.NewIndexMapping()
 	index, err := bleve.NewMemOnly(mapping)
 	if err != nil {
@@ -71,10 +70,10 @@ func indexTitleCollection(app *pocketbase.PocketBase, context *models.AppContext
 	}
 	titleIndexMapping = index
 
-	dao := app.Dao()
+	db := app.DB()
 	pageSize := int64(100)
 	for offset := int64(0); ; offset += pageSize {
-		titles, err := fetchTitlesList(dao, offset, pageSize)
+		titles, err := fetchTitlesList(db, offset, pageSize)
 		if err != nil {
 			return err
 		}
@@ -89,7 +88,7 @@ func indexTitleCollection(app *pocketbase.PocketBase, context *models.AppContext
 	}
 }
 
-func startTitleSearchService(app *pocketbase.PocketBase, context *models.AppContext) error {
+func startTitleSearchService(app *pocketbase.PocketBase) error {
 	go func() {
 		for {
 			select {
@@ -102,7 +101,7 @@ func startTitleSearchService(app *pocketbase.PocketBase, context *models.AppCont
 				}
 
 			case signal := <-titleUpdateChannel:
-				signal.Err <- updateTitleIndex(signal.Dao, signal.Title)
+				signal.Err <- updateTitleIndex(signal.Db, signal.Title)
 			}
 		}
 	}()
@@ -118,10 +117,10 @@ func SearchForTitles(query TitleSearchRequest) TitleSearchResponse {
 	return <-res
 }
 
-func UpdateTitleIndex(dao *daos.Dao, title *models.Title) error {
+func UpdateTitleIndex(db dbx.Builder, title *models.Title) error {
 	err := make(chan error)
 	titleUpdateChannel <- titleUpdateSignal{
-		Dao:   dao,
+		Db:    db,
 		Title: title,
 		Err:   err,
 	}
@@ -178,10 +177,10 @@ func searchForTitles(req TitleSearchRequest) (int, []string, error) {
 	return int(result.Total), hits, nil
 }
 
-func updateTitleIndex(dao *daos.Dao, title *models.Title) error {
+func updateTitleIndex(db dbx.Builder, title *models.Title) error {
 	titleIdx := &titleIndex{}
 	err := models.
-		TitleQuery(dao).
+		TitleQuery(db).
 		Where(
 			dbx.HashExp{
 				"id": title.Id,
@@ -195,7 +194,7 @@ func updateTitleIndex(dao *daos.Dao, title *models.Title) error {
 	if err != nil {
 		return err
 	}
-	titles, err := normalizeTitlesList(dao, []*titleIndex{titleIdx})
+	titles, err := normalizeTitlesList(db, []*titleIndex{titleIdx})
 	if err != nil {
 		return err
 	}
@@ -206,23 +205,23 @@ func updateTitleIndex(dao *daos.Dao, title *models.Title) error {
 	return nil
 }
 
-func fetchTitlesList(dao *daos.Dao, offset int64, limit int64) (titles []*titleIndex, err error) {
-	err = models.TitleQuery(dao).Offset(offset).Limit(limit).All(&titles)
+func fetchTitlesList(db dbx.Builder, offset int64, limit int64) (titles []*titleIndex, err error) {
+	err = models.TitleQuery(db).Offset(offset).Limit(limit).All(&titles)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	titles, err = normalizeTitlesList(dao, titles)
+	titles, err = normalizeTitlesList(db, titles)
 	return
 }
 
-func normalizeTitlesList(dao *daos.Dao, titles []*titleIndex) ([]*titleIndex, error) {
-	if err := assignStaffsToTitles(dao, titles); err != nil {
+func normalizeTitlesList(db dbx.Builder, titles []*titleIndex) ([]*titleIndex, error) {
+	if err := assignStaffsToTitles(db, titles); err != nil {
 		return nil, err
 	}
-	if err := assignAdditionalNameToTitles(dao, titles); err != nil {
+	if err := assignAdditionalNameToTitles(db, titles); err != nil {
 		return nil, err
 	}
 	for _, title := range titles {
@@ -233,7 +232,7 @@ func normalizeTitlesList(dao *daos.Dao, titles []*titleIndex) ([]*titleIndex, er
 	return titles, nil
 }
 
-func assignStaffsToTitles(dao *daos.Dao, titles []*titleIndex) error {
+func assignStaffsToTitles(db dbx.Builder, titles []*titleIndex) error {
 	titleIds := []any{}
 	for _, title := range titles {
 		titleIds = append(titleIds, title.Id)
@@ -246,7 +245,7 @@ func assignStaffsToTitles(dao *daos.Dao, titles []*titleIndex) error {
 	staffAndTitleMap := []*StaffAndTitle{}
 	worksTableName := (&models.Work{}).TableName()
 	staffsTableName := (&models.Staff{}).TableName()
-	err := models.WorkQuery(dao).
+	err := models.WorkQuery(db).
 		Select(
 			fmt.Sprintf("%s.title AS title", worksTableName),
 			fmt.Sprintf("%s.name AS staffName", staffsTableName),
@@ -286,14 +285,14 @@ func assignStaffsToTitles(dao *daos.Dao, titles []*titleIndex) error {
 	return nil
 }
 
-func assignAdditionalNameToTitles(dao *daos.Dao, titles []*titleIndex) error {
+func assignAdditionalNameToTitles(db dbx.Builder, titles []*titleIndex) error {
 	titleIds := []any{}
 	for _, title := range titles {
 		titleIds = append(titleIds, title.Id)
 	}
 
 	additionalNameMap := []*models.AdditionalTitleName{}
-	err := models.AdditionalTitleNameQuery(dao).Select().All(&additionalNameMap)
+	err := models.AdditionalTitleNameQuery(db).Select().All(&additionalNameMap)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}

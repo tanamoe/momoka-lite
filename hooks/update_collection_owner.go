@@ -8,45 +8,45 @@ import (
 
 func registerOnUpdateCollectionOwner(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	app.
-		OnModelAfterCreate((&models.Collection{}).TableName()).
-		Add(
+		OnModelAfterCreateSuccess((&models.Collection{}).TableName()).
+		BindFunc(
 			func(e *core.ModelEvent) error {
-				collectionId := e.Model.GetId()
-				collection, err := models.FindCollectionById(app.Dao(), collectionId)
+				collectionId := e.Model.PK().(string)
+				collection, err := models.FindCollectionById(app.DB(), collectionId)
+
 				if err != nil {
 					return err
 				}
 				if err := collection.AddMember(
-					app.Dao(),
+					app.DB(),
 					collection.OwnerId,
 					models.CollectionEditorRole,
 				); err != nil {
 					return err
 				}
-				return nil
+				return e.Next()
 			},
 		)
 
 	app.
-		OnModelAfterUpdate((&models.Collection{}).TableName()).
-		Add(
+		OnModelAfterUpdateSuccess((&models.Collection{}).TableName()).
+		BindFunc(
 			func(e *core.ModelEvent) error {
-				collectionId := e.Model.GetId()
-				collection, err := models.FindCollectionById(app.Dao(), collectionId)
+				collectionId := e.Model.PK().(string)
+				collection, err := models.FindCollectionById(app.DB(), collectionId)
 				if err != nil {
 					return err
 				}
 				if err := collection.AddMember(
-					app.Dao(),
+					app.DB(),
 					collection.OwnerId,
 					models.CollectionEditorRole,
 				); err != nil {
 					return err
 				}
-				return nil
+				return e.Next()
 			},
 		)
 	return nil

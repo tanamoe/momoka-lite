@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/labstack/echo/v5"
+	"github.com/pocketbase/pocketbase/core"
 	"tana.moe/momoka-lite/models"
 )
 
@@ -26,11 +26,8 @@ func flatToExpandMap(mapping models.ExpandMap, field string) models.ExpandMap {
 	return mapping
 }
 
-func ExtractExpandMap(c echo.Context) (models.ExpandMap, error) {
-	type expandField struct {
-		Expand models.ExpandMap `json:"expand"`
-	}
-	expandJson := c.QueryParam("expand")
+func ExtractExpandMap(c *core.RequestInfo) (models.ExpandMap, error) {
+	expandJson := c.Query["expand"]
 	if expandJson == "" {
 		return nil, nil
 	}

@@ -4,11 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
-
-var _ models.Model = (*State)(nil)
 
 const (
 	ImagorSecretStateId      = "000ImagorSecret"
@@ -16,8 +12,7 @@ const (
 )
 
 type State struct {
-	models.BaseModel
-
+	Id    string `db:"id" json:"id"`
 	Value string `db:"value" json:"value"`
 }
 
@@ -25,13 +20,13 @@ func (m *State) TableName() string {
 	return "states"
 }
 
-func StateQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&State{})
+func StateQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&State{}).TableName())
 }
 
-func FindStateById(dao *daos.Dao, id string) (*State, error) {
+func FindStateById(db dbx.Builder, id string) (*State, error) {
 	assetType := &State{}
-	err := StateQuery(dao).
+	err := StateQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(assetType)
@@ -44,6 +39,6 @@ func FindStateById(dao *daos.Dao, id string) (*State, error) {
 	return assetType, nil
 }
 
-func (m *State) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *State) Expand(db dbx.Builder, e ExpandMap) error {
 	return nil
 }

@@ -13,56 +13,60 @@ import (
 
 func registerResizeAssetImageHook(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	targetCollections := []string{(&models.Asset{}).TableName()}
-	app.OnModelAfterCreate(targetCollections...).Add(func(e *core.ModelEvent) error {
-		return resizeAssetImage(app, context, e.Model.GetId())
+	app.OnModelAfterCreateSuccess(targetCollections...).BindFunc(func(e *core.ModelEvent) error {
+		if err := resizeAssetImage(app, e.Model.PK().(string)); err != nil {
+			return err
+		}
+		return e.Next()
 	})
-	app.OnModelAfterUpdate(targetCollections...).Add(func(e *core.ModelEvent) error {
-		return resizeAssetImage(app, context, e.Model.GetId())
+	app.OnModelAfterUpdateSuccess(targetCollections...).BindFunc(func(e *core.ModelEvent) error {
+		if err := resizeAssetImage(app, e.Model.PK().(string)); err != nil {
+			return err
+		}
+		return e.Next()
 	})
-	app.OnModelAfterUpdate((&models.State{}).TableName()).Add(func(e *core.ModelEvent) error {
+	app.OnModelAfterUpdateSuccess((&models.State{}).TableName()).BindFunc(func(e *core.ModelEvent) error {
 		targetStateIds := map[string]bool{
 			models.ImagorSecretStateId:      true,
 			models.AssetImageResizedStateId: true,
 		}
-		if _, exist := targetStateIds[e.Model.GetId()]; !exist {
-			return nil
+		if _, exist := targetStateIds[e.Model.PK().(string)]; !exist {
+			return e.Next()
 		}
 		assets := []*models.Asset{}
-		err := models.AssetQuery(app.Dao()).Select("id").All(&assets)
+		err := models.AssetQuery(app.DB()).Select("id").All(&assets)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil
+			return e.Next()
 		}
 		if err != nil {
 			return err
 		}
 		for _, asset := range assets {
-			if err := resizeAssetImage(app, context, asset.Id); err != nil {
+			if err := resizeAssetImage(app, asset.Id); err != nil {
 				return err
 			}
 		}
-		return nil
+		return e.Next()
 	})
 	return nil
 }
 
 func resizeAssetImage(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 	assetId string,
 ) error {
-	dao := app.Dao()
-	asset, err := models.FindAssetById(dao, assetId)
+	db := app.UnsafeWithoutHooks().DB()
+	asset, err := models.FindAssetById(db, assetId)
 	if err != nil {
 		return err
 	}
 	assetPath := path.Join(asset.Id, asset.Image)
-	asset.ResizedImage = types.JsonMap{}
-	resizedImages := getImageSizes(context.ImagorSecret, assetPath)
+	asset.ResizedImage = types.JSONMap[string]{}
+	resizedImages := getImageSizes(app.Store().Get(models.ImagorSecretKey).(string), assetPath)
 	for id, resizedPath := range resizedImages {
 		asset.ResizedImage[id] = resizedPath
 	}
-	return dao.WithoutHooks().Save(asset)
+	return db.Model(asset).Update()
 }

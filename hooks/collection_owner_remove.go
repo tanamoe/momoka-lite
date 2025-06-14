@@ -12,29 +12,28 @@ var collectionOwnerRemoveError = errors.New("Removing owner from a collection is
 
 func registerOnCollectionOwnerRemove(
 	app *pocketbase.PocketBase,
-	context *models.AppContext,
 ) error {
 	app.
-		OnModelBeforeDelete((&models.CollectionMember{}).TableName()).
-		Add(
+		OnModelDelete((&models.CollectionMember{}).TableName()).
+		BindFunc(
 			func(e *core.ModelEvent) error {
-				collectionMemberId := e.Model.GetId()
-				collectionMember, err := models.FindCollectionMemberById(app.Dao(), collectionMemberId)
+				collectionMemberId := e.Model.PK().(string)
+				collectionMember, err := models.FindCollectionMemberById(app.DB(), collectionMemberId)
 				if err != nil {
 					return err
 				}
-				if err := collectionMember.Expand(app.Dao(), models.ExpandMap{
+				if err := collectionMember.Expand(app.DB(), models.ExpandMap{
 					"collection": {},
 				}); err != nil {
 					return err
 				}
 				if collectionMember.Collection == nil {
-					return nil
+					return e.Next()
 				}
 				if collectionMember.UserId == collectionMember.Collection.OwnerId {
 					return collectionOwnerRemoveError
 				}
-				return nil
+				return e.Next()
 			},
 		)
 	return nil

@@ -4,15 +4,10 @@ import (
 	"database/sql"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
-	"github.com/pocketbase/pocketbase/models"
 )
 
-var _ models.Model = (*Publisher)(nil)
-
 type Publisher struct {
-	models.BaseModel
-
+	Id    string `db:"id" json:"id"`
 	Name  string `db:"name" json:"name"`
 	Logo  string `db:"logo" json:"logo"`
 	Slug  string `db:"slug" json:"slug"`
@@ -23,13 +18,13 @@ func (m *Publisher) TableName() string {
 	return "publishers"
 }
 
-func PublisherQuery(dao *daos.Dao) *dbx.SelectQuery {
-	return dao.ModelQuery(&Publisher{})
+func PublisherQuery(db dbx.Builder) *dbx.SelectQuery {
+	return db.Select("*").From((&Publisher{}).TableName())
 }
 
-func FindPublisherById(dao *daos.Dao, id string) (*Publisher, error) {
+func FindPublisherById(db dbx.Builder, id string) (*Publisher, error) {
 	publisher := &Publisher{}
-	err := PublisherQuery(dao).
+	err := PublisherQuery(db).
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(publisher)
@@ -42,6 +37,6 @@ func FindPublisherById(dao *daos.Dao, id string) (*Publisher, error) {
 	return publisher, nil
 }
 
-func (m *Publisher) Expand(dao *daos.Dao, e ExpandMap) error {
+func (m *Publisher) Expand(db dbx.Builder, e ExpandMap) error {
 	return nil
 }

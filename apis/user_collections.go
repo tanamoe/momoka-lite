@@ -3,13 +3,9 @@ package apis
 import (
 	"fmt"
 
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/daos"
-	pmodels "github.com/pocketbase/pocketbase/models"
 	"tana.moe/momoka-lite/models"
 	"tana.moe/momoka-lite/tools"
 )
@@ -21,51 +17,50 @@ func registerUserCollectionsRoute(
 	core.Router.GET(
 		"/api/user-collections",
 		listRouteHandler(app, core, onRequestUserCollections),
-		apis.ActivityLogger(app),
 	)
 	core.Router.GET(
-		"/api/user-collections/:userId",
+		"/api/user-collections/{userId}",
 		listRouteHandler(app, core, onRequestUserCollections),
-		apis.ActivityLogger(app),
 	)
 	return nil
 }
 
 func onRequestUserCollections(
 	app *pocketbase.PocketBase,
-	e *core.ServeEvent,
-	c echo.Context,
+	e *core.RequestEvent,
 	page uint,
 	perPage int,
 	expand models.ExpandMap,
 ) (items []*models.CollectionMember, rpage uint, rperPage int, totalItems uint, totalPages uint, err error) {
-	admin, _ := c.Get(apis.ContextAdminKey).(*pmodels.Admin)
-	record, _ := c.Get(apis.ContextAuthRecordKey).(*pmodels.Record)
-	userId := c.PathParam("userId")
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil, 1, -1, 0, 1, err
+	}
+	userId := e.Request.PathValue("userId")
 	if userId == "" {
-		if record != nil {
-			userId = record.Id
+		if info.Auth != nil {
+			userId = info.Auth.Id
 		}
 	}
 	if userId == "" {
 		return nil, 1, -1, 0, 1, notFoundError
 	}
-	if admin != nil {
-		items, err = fetchUserJoinedCollections(app.Dao(), userId, false)
+	if (info.Auth != nil) && (info.Auth.IsSuperuser()) {
+		items, err = fetchUserJoinedCollections(app.DB(), userId, false)
 	} else {
-		if record == nil {
-			items, err = fetchUserJoinedCollections(app.Dao(), userId, true)
-		} else if record.Id == userId {
-			items, err = fetchUserJoinedCollections(app.Dao(), userId, false)
+		if info.Auth == nil {
+			items, err = fetchUserJoinedCollections(app.DB(), userId, true)
+		} else if info.Auth.Id == userId {
+			items, err = fetchUserJoinedCollections(app.DB(), userId, false)
 		} else {
-			items, err = fetchCommonJoinedCollections(app.Dao(), userId, record.Id)
+			items, err = fetchCommonJoinedCollections(app.DB(), userId, info.Auth.Id)
 		}
 	}
 	if err != nil {
 		return nil, 1, -1, 0, 1, err
 	}
 	for _, item := range items {
-		if err := item.Expand(app.Dao(), expand); err != nil {
+		if err := item.Expand(app.DB(), expand); err != nil {
 			return nil, 1, -1, 0, 1, err
 		}
 	}
@@ -73,14 +68,14 @@ func onRequestUserCollections(
 }
 
 func fetchUserJoinedCollections(
-	dao *daos.Dao,
+	db dbx.Builder,
 	userId string,
 	publicOnly bool,
 ) (items []*models.CollectionMember, err error) {
 	collectionTableName := (&models.Collection{}).TableName()
 	collectionMembersTableName := (&models.CollectionMember{}).TableName()
 
-	query := models.CollectionMemberQuery(dao).
+	query := models.CollectionMemberQuery(db).
 		LeftJoin(
 			collectionTableName,
 			dbx.NewExp(
@@ -109,7 +104,7 @@ func fetchUserJoinedCollections(
 }
 
 func fetchCommonJoinedCollections(
-	dao *daos.Dao,
+	db dbx.Builder,
 	targetId string,
 	viewerId string,
 ) (items []*models.CollectionMember, err error) {
@@ -127,7 +122,7 @@ func fetchCommonJoinedCollections(
 	scoreColumn := "SUM(weight)"
 	minScore := 3
 
-	err = models.CollectionMemberQuery(dao).
+	err = models.CollectionMemberQuery(db).
 		Select(
 			fmt.Sprintf("%s.*", collectionMembersTableName),
 			weightColumn,
