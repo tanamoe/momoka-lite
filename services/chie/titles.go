@@ -152,6 +152,9 @@ func searchForTitles(req TitleSearchRequest) (int, []string, error) {
 		}
 		queries = append(queries, groupMatchQuery[string](staffsQuery, "staffs"))
 	}
+	if len(queries) <= 0 {
+		queries = append(queries, query.NewMatchAllQuery())
+	}
 	searchQuery := query.NewConjunctionQuery(queries)
 	searchReq := bleve.NewSearchRequest(searchQuery)
 	if req.Limit <= 0 {
