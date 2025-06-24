@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/pocketbase/dbx"
 )
@@ -25,7 +26,7 @@ func FindStaffById(db dbx.Builder, id string) (*Staff, error) {
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(staff)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

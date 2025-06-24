@@ -41,7 +41,7 @@ func FindCollectionById(db dbx.Builder, id string) (*Collection, error) {
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(collection)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -80,7 +80,7 @@ func FindUserDefaultCollection(db dbx.Builder, userId string) (*Collection, erro
 		}).
 		Limit(1).
 		One(collection)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

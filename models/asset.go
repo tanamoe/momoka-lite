@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/tools/types"
@@ -33,7 +34,7 @@ func FindAssetById(db dbx.Builder, id string) (*Asset, error) {
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(asset)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
