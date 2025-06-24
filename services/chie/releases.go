@@ -142,6 +142,9 @@ func searchForReleases(req ReleaseSearchRequest) (int, []string, error) {
 		q.SetField("status")
 		queries = append(queries, q)
 	}
+	if len(queries) <= 0 {
+		queries = append(queries, query.NewMatchAllQuery())
+	}
 	searchQuery := query.NewConjunctionQuery(queries)
 	searchReq := bleve.NewSearchRequest(searchQuery)
 	if req.Limit <= 0 {
