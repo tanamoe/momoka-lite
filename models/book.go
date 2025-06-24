@@ -35,7 +35,7 @@ func FindBookById(db dbx.Builder, id string) (*Book, error) {
 		AndWhere(dbx.HashExp{"id": id}).
 		Limit(1).
 		One(book)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
