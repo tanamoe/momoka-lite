@@ -1,5 +1,5 @@
 ARG  BUN_IMAGE=oven/bun:1.2.17
-ARG  BUILDER_IMAGE=golang:1.24.4-alpine3.21
+ARG  BUILDER_IMAGE=golang:1.25.3-alpine3.21
 ARG  DISTROLESS_IMAGE=gcr.io/distroless/static
 
 ############################
