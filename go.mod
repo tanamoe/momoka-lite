@@ -6,7 +6,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.5.6
 	github.com/gosimple/slug v1.15.0
 	github.com/joho/godotenv v1.5.1
-	github.com/pocketbase/dbx v1.11.0
+	github.com/pocketbase/dbx v1.12.0
 	github.com/pocketbase/pocketbase v0.30.2
 )
 
