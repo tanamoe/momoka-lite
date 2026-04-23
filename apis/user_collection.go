@@ -248,7 +248,7 @@ func onCollectionUpsertRequest(
 			}
 		}
 	} else { // Create collection
-		if (!info.Auth.IsSuperuser()) && (item.OwnerId == "") {
+		if (info.Auth.IsSuperuser()) && (item.OwnerId == "") {
 			return nil, invalidRequestError
 		}
 		if !info.Auth.IsSuperuser() {
